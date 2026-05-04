@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pasien;
+use App\Models\Pendaftaran;
+use App\Models\User;
+use App\Services\SatuSehatService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+
+class PasienController extends Controller
+{
+    protected SatuSehatService $satuSehat;
+
+    public function __construct(SatuSehatService $satuSehat)
+    {
+        $this->satuSehat = $satuSehat;
+        $this->middleware(['auth', 'role:pasien']);
+    }
+
+    public function dashboard()
+    {
+        /** @var User $user */
+        $user   = Auth::user();
+        $pasien = $user->pasien;
+
+        if (!$pasien) {
+            return redirect()->route('pasien.profil.create')
+                ->with('warning', 'Lengkapi profil Anda terlebih dahulu.');
+        }
+
+        $pendaftaran_aktif = Pendaftaran::with(['poli', 'dokter'])
+            ->where('pasien_id', $pasien->id)
+            ->whereIn('status', ['menunggu', 'dipanggil'])
+            ->whereDate('tanggal_kunjungan', '>=', today())
+            ->orderBy('tanggal_kunjungan')
+            ->get();
+
+        $riwayat = Pendaftaran::with(['poli', 'dokter'])
+            ->where('pasien_id', $pasien->id)
+            ->where('status', 'selesai')
+            ->orderBy('tanggal_kunjungan', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('pasien.dashboard', compact('pasien', 'pendaftaran_aktif', 'riwayat'));
+    }
+
+    public function profil()
+    {
+        /** @var User $user */
+        $user   = Auth::user();
+        $pasien = $user->pasien;
+
+        return view('pasien.profil', compact('pasien'));
+    }
+
+    public function updateProfil(Request $request)
+    {
+        /** @var User $user */
+        $user   = Auth::user();
+        $pasien = $user->pasien;
+
+        $validator = Validator::make($request->all(), [
+            'nama_lengkap'     => 'required|string|max:255',
+            'nik'              => 'required|size:16|unique:pasien,nik,' . ($pasien->id ?? 0),
+            'tanggal_lahir'    => 'required|date',
+            'tempat_lahir'     => 'required|string|max:100',
+            'jenis_kelamin'    => 'required|in:L,P',
+            'golongan_darah'   => 'nullable|in:A,B,AB,O',
+            'agama'            => 'nullable|string|max:50',
+            'status_pernikahan' => 'nullable|string|max:50',
+            'pekerjaan'        => 'nullable|string|max:100',
+            'no_hp'            => 'required|string|max:15',
+            'email'            => 'nullable|email|max:255',
+            'alamat'           => 'required|string',
+            'kecamatan'        => 'required|string|max:100',
+            'kabupaten'        => 'required|string|max:100',
+            'provinsi'         => 'required|string|max:100',
+            // Penanggung Jawab
+            'nama_pj'          => 'required|string|max:255',
+            'hubungan_pj'      => 'required|string|max:50',
+            'no_hp_pj'         => 'required|string|max:15',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if ($pasien) {
+            $pasien->update($request->except(['_token', '_method']));
+        } else {
+            $pasien = $user->pasien()->create(
+                array_merge($request->except(['_token', '_method']), ['status' => 'aktif'])
+            );
+        }
+
+        // Sync ke SatuSehat
+        if (!$pasien->satusehat_id) {
+            $ssResponse = $this->satuSehat->createPatient($pasien->toArray());
+            if ($ssResponse['success'] && isset($ssResponse['data']['id'])) {
+                $pasien->update(['satusehat_id' => $ssResponse['data']['id']]);
+            }
+        }
+
+        return back()->with('success', 'Profil berhasil diperbarui.');
+    }
+
+    public function gantiPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'password_lama' => 'required',
+            'password'      => 'required|min:8|confirmed',
+        ], [
+            'password_lama.required' => 'Password lama wajib diisi',
+            'password.required'      => 'Password baru wajib diisi',
+            'password.min'           => 'Password minimal 8 karakter',
+            'password.confirmed'     => 'Konfirmasi password tidak cocok',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (!Hash::check($request->password_lama, $user->password)) {
+            return back()->withErrors(['password_lama' => 'Password lama salah.']);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return back()->with('success', 'Password berhasil diubah.');
+    }
+
+    public function riwayat()
+    {
+        /** @var User $user */
+        $user   = Auth::user();
+        $pasien = $user->pasien;
+
+        $riwayat = Pendaftaran::with(['poli', 'dokter'])
+            ->where('pasien_id', $pasien->id)
+            ->orderBy('tanggal_kunjungan', 'desc')
+            ->paginate(15);
+
+        return view('pasien.riwayat', compact('riwayat', 'pasien'));
+    }
+}
