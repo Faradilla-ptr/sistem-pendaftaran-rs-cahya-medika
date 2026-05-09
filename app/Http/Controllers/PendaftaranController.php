@@ -26,6 +26,12 @@ class PendaftaranController extends Controller
     public function index()
     {
         $pasien = Auth::user()->pasien;
+
+        if (!$pasien) {
+            return redirect()->route('pasien.profil')
+                ->with('warning', 'Lengkapi profil Anda terlebih dahulu.');
+        }
+
         $pendaftaran = Pendaftaran::with(['poli', 'dokter'])
             ->where('pasien_id', $pasien->id)
             ->orderBy('created_at', 'desc')
@@ -36,8 +42,14 @@ class PendaftaranController extends Controller
 
     public function create()
     {
-        $poli = Poli::where('is_active', true)->get();
         $pasien = Auth::user()->pasien;
+
+        if (!$pasien) {
+            return redirect()->route('pasien.profil')
+                ->with('warning', 'Lengkapi profil Anda terlebih dahulu sebelum mendaftar.');
+        }
+
+        $poli = Poli::where('is_active', true)->get();
 
         return view('pasien.pendaftaran.create', compact('poli', 'pasien'));
     }
@@ -108,6 +120,11 @@ class PendaftaranController extends Controller
         /** @var \App\Models\User $user */
         $user   = Auth::user();
         $pasien = $user->pasien;
+
+        if (!$pasien) {
+            return back()->withErrors(['error' => 'Profil pasien tidak ditemukan. Lengkapi profil Anda terlebih dahulu.']);
+        }
+
         $dokter = Dokter::find($request->dokter_id);
 
         // Cek apakah sudah ada pendaftaran di hari yang sama
@@ -125,40 +142,67 @@ class PendaftaranController extends Controller
         try {
             DB::beginTransaction();
 
+            // --- Pastikan pasien punya SatuSehat ID sebelum buat encounter ---
+            if (!$pasien->satusehat_id) {
+                $ssPatient = $this->satuSehat->getOrCreatePatient([
+                    'nik'           => $pasien->nik,
+                    'nama_lengkap'  => $pasien->nama_lengkap,
+                    'no_hp'         => $pasien->no_hp,
+                    'jenis_kelamin' => $pasien->jenis_kelamin,
+                    'tanggal_lahir' => $pasien->tanggal_lahir
+                        ? $pasien->tanggal_lahir->format('Y-m-d') : null,
+                    'alamat'        => $pasien->alamat,
+                    'kabupaten'     => $pasien->kabupaten,
+                    'kode_pos'      => $pasien->kode_pos,
+                ]);
+
+                if (!empty($ssPatient['success']) && !empty($ssPatient['data']['id'])) {
+                    $pasien->update(['satusehat_id' => $ssPatient['data']['id']]);
+                    $pasien->refresh();
+                }
+            }
+
             // Buat data Pendaftaran
             $pendaftaran = Pendaftaran::create([
-                'pasien_id'        => $pasien->id,
-                'dokter_id'        => $request->dokter_id,
-                'poli_id'          => $request->poli_id,
-                'tanggal_kunjungan' => $request->tanggal_kunjungan,
-                'jam_kunjungan'    => $request->jam_kunjungan,
-                'jenis_kunjungan'  => $request->jenis_kunjungan,
-                'keluhan'          => $request->keluhan,
-                'status'           => 'menunggu',
-                'satusehat_status' => 'pending',
-                'biaya_konsultasi' => 150000,
-            ]);
-
-            // Kirim ke SatuSehat API
-            $encounterData = [
-                'patient_id'        => $pasien->satusehat_id ?? 'patient-dummy-' . $pasien->id,
-                'nama_pasien'       => $pasien->nama_lengkap,
-                'dokter_id'         => $dokter->satusehat_id ?? 'practitioner-dummy',
-                'nama_dokter'       => $dokter->nama_lengkap,
+                'pasien_id'         => $pasien->id,
+                'dokter_id'         => $request->dokter_id,
+                'poli_id'           => $request->poli_id,
                 'tanggal_kunjungan' => $request->tanggal_kunjungan,
                 'jam_kunjungan'     => $request->jam_kunjungan,
+                'jenis_kunjungan'   => $request->jenis_kunjungan,
                 'keluhan'           => $request->keluhan,
-            ];
+                'status'            => 'menunggu',
+                'satusehat_status'  => 'pending',
+                'biaya_konsultasi'  => 150000,
+            ]);
 
-            $ssResponse = $this->satuSehat->createEncounter($encounterData);
+            // Kirim Encounter ke SatuSehat hanya jika pasien punya SatuSehat ID
+            if ($pasien->satusehat_id) {
+                $encounterData = [
+                    'patient_id'        => $pasien->satusehat_id,
+                    'nama_pasien'       => $pasien->nama_lengkap,
+                    'dokter_id'         => $dokter->satusehat_id ?? '',
+                    'nama_dokter'       => $dokter->nama_lengkap,
+                    'tanggal_kunjungan' => $request->tanggal_kunjungan,
+                    'jam_kunjungan'     => $request->jam_kunjungan,
+                    'keluhan'           => $request->keluhan,
+                    'kode_booking'      => $pendaftaran->kode_booking,
+                    'nama_poli'         => $pendaftaran->poli->nama ?? 'Rawat Jalan',
+                ];
 
-            if ($ssResponse['success']) {
-                $pendaftaran->update([
-                    'satusehat_encounter_id' => $ssResponse['data']['id'] ?? null,
-                    'satusehat_response'     => $ssResponse['data'],
-                    'satusehat_status'       => 'success',
-                ]);
+                $ssResponse = $this->satuSehat->createEncounter($encounterData);
+
+                if (!empty($ssResponse['success'])) {
+                    $pendaftaran->update([
+                        'satusehat_encounter_id' => $ssResponse['data']['id'] ?? null,
+                        'satusehat_response'     => $ssResponse['data'],
+                        'satusehat_status'       => 'success',
+                    ]);
+                } else {
+                    $pendaftaran->update(['satusehat_status' => 'failed']);
+                }
             } else {
+                // Pasien belum bisa disinkronkan — tandai failed agar bisa di-retry
                 $pendaftaran->update(['satusehat_status' => 'failed']);
             }
 

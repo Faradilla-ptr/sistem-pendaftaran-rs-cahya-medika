@@ -15,6 +15,10 @@ return [
     'client_secret' => env('SATUSEHAT_CLIENT_SECRET', ''),
     'organization_id' => env('SATUSEHAT_ORGANIZATION_ID', ''),
 
+    // Location ID RS (diperoleh saat mendaftarkan Location ke SatuSehat)
+    // Jalankan: php test_setup_location.php untuk generate ID ini
+    'location_id'     => env('SATUSEHAT_LOCATION_ID', ''),
+
     /*
     |--------------------------------------------------------------------------
     | FHIR Resource Endpoints

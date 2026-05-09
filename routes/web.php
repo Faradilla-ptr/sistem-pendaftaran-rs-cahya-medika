@@ -84,6 +84,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // SatuSehat
     Route::get('/satusehat', [AdminController::class, 'satusehatStatus'])->name('satusehat.status');
+    Route::get('/satusehat/test-koneksi', [AdminController::class, 'satusehatTestKoneksi'])->name('satusehat.test');
+    Route::get('/satusehat/cari-pasien',  [AdminController::class, 'satusehatCariPasien'])->name('satusehat.cari-pasien');
+    Route::get('/satusehat/cari-dokter',  [AdminController::class, 'satusehatCariDokter'])->name('satusehat.cari-dokter');
+    Route::get('/satusehat/cari-wilayah', [AdminController::class, 'satusehatCariWilayah'])->name('satusehat.wilayah');
     Route::post('/satusehat/{pendaftaran}/sync', [AdminController::class, 'satusehatSync'])->name('satusehat.sync');
 
     // Laporan

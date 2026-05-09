@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pasien;
 use App\Models\Pendaftaran;
 use App\Models\User;
 use App\Services\SatuSehatService;
@@ -28,7 +27,7 @@ class PasienController extends Controller
         $pasien = $user->pasien;
 
         if (!$pasien) {
-            return redirect()->route('pasien.profil.create')
+            return redirect()->route('pasien.profil')
                 ->with('warning', 'Lengkapi profil Anda terlebih dahulu.');
         }
 
@@ -98,10 +97,25 @@ class PasienController extends Controller
             );
         }
 
-        // Sync ke SatuSehat
+        // Sync ke SatuSehat — refresh dari DB supaya data terbaru
+        $pasien->refresh();
         if (!$pasien->satusehat_id) {
-            $ssResponse = $this->satuSehat->createPatient($pasien->toArray());
-            if ($ssResponse['success'] && isset($ssResponse['data']['id'])) {
+            // Cari dulu di SatuSehat berdasar NIK, kalau tidak ada baru buat
+            $ssResponse = $this->satuSehat->getOrCreatePatient([
+                'nik'            => $pasien->nik,
+                'nama_lengkap'   => $pasien->nama_lengkap,
+                'no_hp'          => $pasien->no_hp,
+                'jenis_kelamin'  => $pasien->jenis_kelamin,
+                'tanggal_lahir'  => $pasien->tanggal_lahir ? $pasien->tanggal_lahir->format('Y-m-d') : null,
+                'alamat'         => $pasien->alamat,
+                'kabupaten'      => $pasien->kabupaten,
+                'kode_pos'       => $pasien->kode_pos,
+                'kode_provinsi'  => $pasien->kode_provinsi  ?? '35',
+                'kode_kabupaten' => $pasien->kode_kabupaten ?? '3511',
+                'kode_kecamatan' => $pasien->kode_kecamatan ?? '351101',
+                'kode_kelurahan' => $pasien->kode_kelurahan ?? '3511010001',
+            ]);
+            if (!empty($ssResponse['success']) && !empty($ssResponse['data']['id'])) {
                 $pasien->update(['satusehat_id' => $ssResponse['data']['id']]);
             }
         }

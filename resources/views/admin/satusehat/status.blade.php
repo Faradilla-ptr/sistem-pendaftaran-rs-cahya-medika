@@ -7,17 +7,29 @@
 <!-- HEADER -->
 <div style="background:linear-gradient(135deg,#0c4a6e,#0891b2);border-radius:18px;padding:24px 28px;color:white;margin-bottom:24px;display:flex;align-items:center;gap:20px">
     <div style="font-size:48px;flex-shrink:0">🔗</div>
-    <div>
+    <div style="flex:1">
         <div style="font-size:18px;font-weight:800;margin-bottom:4px">SatuSehat Platform Kemenkes RI</div>
         <div style="font-size:13px;opacity:0.75">Integrasi FHIR R4 API untuk pertukaran data kesehatan nasional</div>
-        <div style="display:flex;gap:10px;margin-top:10px">
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
             <span style="background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">
                 🌐 Staging / Sandbox Mode
             </span>
             <span style="background:rgba(6,182,212,0.3);border:1px solid rgba(6,182,212,0.5);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">
                 FHIR R4 Compliant
             </span>
+            @if(!config('satusehat.use_dummy') && config('satusehat.client_id'))
+            <span style="background:rgba(5,150,105,0.4);border:1px solid rgba(5,150,105,0.6);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600">
+                ✅ Mode Real API
+            </span>
+            @endif
         </div>
+    </div>
+    <div style="flex-shrink:0">
+        <a href="{{ route('admin.satusehat.test') }}" target="_blank"
+           style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s"
+           onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <i class="fas fa-plug"></i> Test Koneksi API
+        </a>
     </div>
 </div>
 
@@ -154,6 +166,117 @@
     </div>
 </div>
 @endif
+
+<!-- TOOLS PENCARIAN SATUSEHAT -->
+<div class="card" style="margin-top:24px">
+    <div class="card-header">
+        <div class="card-title">🔍 Cari Data di SatuSehat</div>
+        <span style="font-size:12px;color:#64748b">Cari pasien atau dokter by NIK/ID langsung dari database SatuSehat</span>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-2" style="gap:20px">
+
+            <!-- Cari Pasien -->
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#0c4a6e;margin-bottom:10px;text-transform:uppercase">👤 Cari Pasien by NIK</div>
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                    <input type="text" id="nikPasienInput" class="form-control" placeholder="Masukkan NIK (16 digit)" maxlength="16" style="font-family:monospace">
+                    <button onclick="cariPasienSS()" class="btn btn-primary btn-sm" style="flex-shrink:0">
+                        <i class="fas fa-search"></i> Cari
+                    </button>
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-bottom:8px">
+                    NIK Dummy SatuSehat untuk testing:
+                    <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                        @foreach(['9271060312000001','9271060312000002','9271060312000003'] as $nik)
+                        <button onclick="document.getElementById('nikPasienInput').value='{{ $nik }}';cariPasienSS()"
+                            class="btn btn-sm btn-outline" style="font-size:10px;font-family:monospace;padding:3px 8px">
+                            {{ $nik }}
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                <div id="hasilPasienSS" style="display:none;padding:12px;background:#f8fafc;border-radius:10px;font-size:12px;max-height:250px;overflow:auto">
+                </div>
+            </div>
+
+            <!-- Cari Dokter -->
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#0c4a6e;margin-bottom:10px;text-transform:uppercase">👨‍⚕️ Cari Dokter (Practitioner) by NIK</div>
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                    <input type="text" id="nikDokterInput" class="form-control" placeholder="Masukkan NIK dokter (16 digit)" maxlength="16" style="font-family:monospace">
+                    <button onclick="cariDokterSS()" class="btn btn-primary btn-sm" style="flex-shrink:0">
+                        <i class="fas fa-search"></i> Cari
+                    </button>
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-bottom:8px">
+                    NIK dokter harus sudah terdaftar di SatuSehat (STR aktif di KTKI).
+                </div>
+                <div id="hasilDokterSS" style="display:none;padding:12px;background:#f8fafc;border-radius:10px;font-size:12px;max-height:250px;overflow:auto">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+async function cariPasienSS() {
+    const nik = document.getElementById('nikPasienInput').value.trim();
+    if (!nik) return alert('Masukkan NIK terlebih dahulu');
+    const div = document.getElementById('hasilPasienSS');
+    div.style.display = 'block';
+    div.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari di SatuSehat...';
+    try {
+        const r = await fetch(`{{ route('admin.satusehat.cari-pasien') }}?nik=${nik}`);
+        const d = await r.json();
+        if (d.ditemukan) {
+            const info = d.info_ringkas;
+            div.innerHTML = `
+                <div style="color:#065f46;font-weight:700;margin-bottom:8px">✅ Pasien Ditemukan!</div>
+                <div><b>SatuSehat ID:</b> <code>${info.id}</code></div>
+                <div><b>NIK:</b> ${info.nik || nik}</div>
+                <div><b>Nama:</b> ${info.nama_lengkap || '(termasked)'}</div>
+                <div><b>Jenis Kelamin:</b> ${info.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                <div><b>Tgl Lahir:</b> ${info.tanggal_lahir || '-'}</div>
+                ${d.pasien_lokal ? `<div style="margin-top:6px;padding:6px 8px;background:#d1fae5;border-radius:6px"><b>DB Lokal:</b> ${d.pasien_lokal.nama} ${d.pasien_lokal.satusehat_id_updated ? '— <b>satusehat_id diupdate!</b>' : ''}</div>` : ''}
+            `;
+        } else {
+            div.innerHTML = `<div style="color:#92400e">⚠️ ${d.pesan}</div>`;
+        }
+    } catch(e) {
+        div.innerHTML = `<div style="color:#991b1b">❌ Error: ${e.message}</div>`;
+    }
+}
+
+async function cariDokterSS() {
+    const nik = document.getElementById('nikDokterInput').value.trim();
+    if (!nik) return alert('Masukkan NIK dokter terlebih dahulu');
+    const div = document.getElementById('hasilDokterSS');
+    div.style.display = 'block';
+    div.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari di SatuSehat...';
+    try {
+        const r = await fetch(`{{ route('admin.satusehat.cari-dokter') }}?nik=${nik}`);
+        const d = await r.json();
+        if (d.ditemukan) {
+            const info = d.info_ringkas;
+            div.innerHTML = `
+                <div style="color:#065f46;font-weight:700;margin-bottom:8px">✅ Practitioner Ditemukan!</div>
+                <div><b>SatuSehat ID:</b> <code>${info.id}</code></div>
+                <div><b>NIK:</b> ${info.nik || nik}</div>
+                <div><b>Nama:</b> ${info.nama_lengkap || '-'}</div>
+                ${d.dokter_lokal ? `<div style="margin-top:6px;padding:6px 8px;background:#d1fae5;border-radius:6px"><b>DB Lokal:</b> ${d.dokter_lokal.nama} ${d.dokter_lokal.satusehat_id_updated ? '— <b>satusehat_id diupdate!</b>' : ''}</div>` : '<div style="margin-top:6px;color:#64748b">Dokter ini belum ada di database lokal RS Cahya Medika.</div>'}
+            `;
+        } else {
+            div.innerHTML = `<div style="color:#92400e">⚠️ ${d.pesan}<br><small>${d.solusi || ''}</small></div>`;
+        }
+    } catch(e) {
+        div.innerHTML = `<div style="color:#991b1b">❌ Error: ${e.message}</div>`;
+    }
+}
+</script>
+@endpush
 
 <!-- DOKUMENTASI API -->
 <div class="card" style="margin-top:24px">

@@ -31,9 +31,13 @@ class Pasien extends Model
         'email',
         'alamat',
         'kelurahan',
+        'kode_kelurahan',
         'kecamatan',
+        'kode_kecamatan',
         'kabupaten',
+        'kode_kabupaten',
         'provinsi',
+        'kode_provinsi',
         'kode_pos',
         // Kontak Darurat
         'nama_pj',

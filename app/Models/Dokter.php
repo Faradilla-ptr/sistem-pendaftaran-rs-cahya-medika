@@ -43,7 +43,11 @@ class Dokter extends Model
 
     public function getNamaLengkapAttribute(): string
     {
-        return trim($this->gelar_depan . ' ' . $this->nama . ', ' . $this->gelar_belakang);
+        $nama = trim(($this->gelar_depan ? $this->gelar_depan . ' ' : '') . $this->nama);
+        if ($this->gelar_belakang) {
+            $nama .= ', ' . $this->gelar_belakang;
+        }
+        return $nama;
     }
 
     public function getJadwalHariIniAttribute(): ?array
