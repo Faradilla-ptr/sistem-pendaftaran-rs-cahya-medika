@@ -90,6 +90,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/satusehat/cari-wilayah', [AdminController::class, 'satusehatCariWilayah'])->name('satusehat.wilayah');
     Route::post('/satusehat/{pendaftaran}/sync', [AdminController::class, 'satusehatSync'])->name('satusehat.sync');
 
+    // Chart AJAX
+    Route::get('/api/chart-data', [AdminController::class, 'dashboardChartData'])->name('api.chart');
+
     // Laporan
     Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
+    Route::get('/laporan/export-excel', [AdminController::class, 'laporanExportExcel'])->name('laporan.excel');
+    Route::get('/laporan/export-pdf', [AdminController::class, 'laporanExportPdf'])->name('laporan.pdf');
 });
