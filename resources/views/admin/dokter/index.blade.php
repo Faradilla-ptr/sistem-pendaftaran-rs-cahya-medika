@@ -13,6 +13,51 @@
     </a>
 </div>
 
+<!-- FILTER -->
+<div class="card" style="margin-bottom:20px">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.dokter.index') }}">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+
+                <div class="form-group" style="margin:0;min-width:160px">
+                    <label class="form-label">Filter Poli</label>
+                    <select name="poli_id" class="form-select">
+                        <option value="">Semua Poli</option>
+                        @foreach($poli as $p)
+                            <option value="{{ $p->id }}" {{ request('poli_id') == $p->id ? 'selected' : '' }}>{{ $p->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin:0;min-width:180px">
+                    <label class="form-label">Spesialisasi</label>
+                    <input type="text" name="spesialisasi" class="form-control"
+                        value="{{ request('spesialisasi') }}" placeholder="Cari spesialisasi...">
+                </div>
+
+                <div class="form-group" style="margin:0;min-width:140px">
+                    <label class="form-label">Hari Praktik</label>
+                    <select name="hari" class="form-select">
+                        <option value="">Semua Hari</option>
+                        @foreach(['senin','selasa','rabu','kamis','jumat','sabtu','minggu'] as $h)
+                            <option value="{{ $h }}" {{ request('hari') === $h ? 'selected' : '' }}>
+                                {{ ucfirst($h) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="flex-shrink:0">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+                @if(request()->hasAny(['poli_id','spesialisasi','hari']))
+                    <a href="{{ route('admin.dokter.index') }}" class="btn btn-outline" style="flex-shrink:0">Reset</a>
+                @endif
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="table-wrapper">
         <table>
@@ -63,7 +108,13 @@
                             @endif
                         </div>
                     </td>
-                    <td style="font-size:12px;font-family:monospace">{{ $d->str_number ?? '-' }}</td>
+                    <td>
+                        @if($d->str_number)
+                            <span style="font-size:11px;font-family:monospace;background:#f1f5f9;padding:3px 8px;border-radius:6px;color:#334155">{{ $d->str_number }}</span>
+                        @else
+                            <span style="color:#dc2626;font-size:11px;font-weight:600">⚠ Belum diisi</span>
+                        @endif
+                    </td>
                     <td>
                         @if($d->satusehat_id)
                             <code style="font-size:10px;color:#0891b2">{{ $d->satusehat_id }}</code>
@@ -77,11 +128,9 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display:flex;gap:6px">
-                            <a href="{{ route('admin.dokter.edit', $d->id) }}" class="btn btn-sm btn-outline" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        </div>
+                        <a href="{{ route('admin.dokter.edit', $d->id) }}" class="btn btn-sm btn-outline" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
                     </td>
                 </tr>
                 @empty

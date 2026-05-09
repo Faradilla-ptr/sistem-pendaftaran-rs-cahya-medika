@@ -18,8 +18,8 @@
     </div>
 </div>
 
-<!-- STATS ROW 1 -->
-<div class="grid grid-4" style="margin-bottom:20px">
+<!-- STATS ROW -->
+<div class="grid grid-4" style="margin-bottom:24px">
     <div class="stat-card">
         <div class="stat-icon" style="background:#e0f2fe">👥</div>
         <div>
@@ -50,8 +50,74 @@
     </div>
 </div>
 
+<!-- CHART FILTER -->
+<div class="card" style="margin-bottom:16px">
+    <div class="card-body" style="padding:14px 20px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:700;color:#0c4a6e">
+                <i class="fas fa-filter" style="margin-right:6px;color:#0891b2"></i>Filter Chart:
+            </span>
+            <select id="chartBulan" class="form-select" style="width:140px;padding:7px 10px;font-size:13px" onchange="loadChartData()">
+                @foreach(range(1,12) as $b)
+                    <option value="{{ $b }}" {{ now()->month == $b ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::create()->month($b)->locale('id')->monthName }}
+                    </option>
+                @endforeach
+            </select>
+            <select id="chartTahun" class="form-select" style="width:100px;padding:7px 10px;font-size:13px" onchange="loadChartData()">
+                @foreach(range(date('Y'), date('Y')-4) as $t)
+                    <option value="{{ $t }}" {{ date('Y') == $t ? 'selected' : '' }}>{{ $t }}</option>
+                @endforeach
+            </select>
+            <span id="chartPeriodeLabel" style="font-size:12px;color:#64748b;font-weight:600">
+                {{ now()->locale('id')->isoFormat('MMMM YYYY') }}
+            </span>
+            <div id="chartLoading" style="display:none;align-items:center;gap:6px;font-size:12px;color:#0891b2">
+                <i class="fas fa-spinner fa-spin"></i> Memuat...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="grid grid-2" style="gap:24px;margin-bottom:24px">
+    <!-- LINE CHART: Kunjungan Harian -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">📈 Kunjungan Harian</div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#0891b2">
+                    <div style="width:12px;height:3px;background:#0891b2;border-radius:2px"></div> Total
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#059669">
+                    <div style="width:12px;height:3px;background:#059669;border-radius:2px;border-top:1px dashed #059669"></div> Selesai
+                </div>
+            </div>
+        </div>
+        <div class="card-body" style="padding:16px 20px">
+            <div style="position:relative;height:260px">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- BAR CHART: Kunjungan per Poli -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">📊 Kunjungan per Poli</div>
+            <div id="barNoData" style="display:none;font-size:12px;color:#94a3b8">Belum ada data</div>
+        </div>
+        <div class="card-body" style="padding:16px 20px">
+            <div style="position:relative;height:260px">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ANTRIAN HARI INI + SIDE PANEL -->
 <div class="grid grid-2" style="gap:24px;margin-bottom:20px">
-    <!-- PENDAFTARAN HARI INI -->
+    <!-- ANTRIAN HARI INI -->
     <div class="card">
         <div class="card-header">
             <div class="card-title">📋 Antrian Hari Ini</div>
@@ -60,7 +126,6 @@
         <div class="card-body" style="padding:0">
             @forelse($pendaftaran_hari_ini as $p)
             <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px">
-                <!-- Nomor Antrian -->
                 <div style="width:36px;height:36px;background:{{ $p->status === 'menunggu' ? '#fef3c7' : ($p->status === 'dipanggil' ? '#e0f2fe' : '#d1fae5') }};border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:{{ $p->status === 'menunggu' ? '#92400e' : ($p->status === 'dipanggil' ? '#0c4a6e' : '#065f46') }};flex-shrink:0">
                     {{ $p->no_antrian }}
                 </div>
@@ -78,14 +143,10 @@
                         @csrf @method('PATCH')
                         @if($p->status === 'menunggu')
                             <input type="hidden" name="status" value="dipanggil">
-                            <button type="submit" class="btn btn-sm" style="padding:4px 10px;background:#e0f2fe;color:#0c4a6e;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">
-                                Panggil
-                            </button>
+                            <button type="submit" class="btn btn-sm" style="padding:4px 10px;background:#e0f2fe;color:#0c4a6e;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Panggil</button>
                         @elseif($p->status === 'dipanggil')
                             <input type="hidden" name="status" value="selesai">
-                            <button type="submit" class="btn btn-sm" style="padding:4px 10px;background:#d1fae5;color:#065f46;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">
-                                Selesai
-                            </button>
+                            <button type="submit" class="btn btn-sm" style="padding:4px 10px;background:#d1fae5;color:#065f46;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Selesai</button>
                         @endif
                     </form>
                 </div>
@@ -122,10 +183,6 @@
                         <div style="font-size:22px;font-weight:900;color:#991b1b">{{ $satusehat_status['failed'] }}</div>
                         <div style="font-size:10px;color:#dc2626;font-weight:600;margin-top:4px">❌ Gagal</div>
                     </div>
-                </div>
-                <div style="margin-top:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:12px;color:#0369a1;display:flex;align-items:center;gap:8px">
-                    <i class="fas fa-info-circle"></i>
-                    Data kunjungan dikirim otomatis ke platform SatuSehat Kemenkes RI via FHIR API
                 </div>
             </div>
         </div>
@@ -167,4 +224,121 @@
         </div>
     </div>
 </div>
+
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const BAR_COLORS = [
+    'rgba(8,145,178,0.75)','rgba(5,150,105,0.75)','rgba(220,38,38,0.75)',
+    'rgba(217,119,6,0.75)','rgba(124,58,237,0.75)','rgba(219,39,119,0.75)',
+    'rgba(2,132,199,0.75)','rgba(225,29,72,0.75)',
+];
+
+const chartOpts = (type) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+        legend: {
+            display: type === 'line',
+            labels: { font: { size: 12, family: 'Plus Jakarta Sans' }, boxWidth: 16, padding: 16 }
+        },
+        tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12, weight: '700' }, padding: 10 }
+    },
+    scales: {
+        x: {
+            ticks: { font: { size: 11 }, maxRotation: type === 'bar' ? 30 : 0 },
+            grid: { color: 'rgba(0,0,0,0.04)' }
+        },
+        y: {
+            beginAtZero: true,
+            ticks: {
+                stepSize: 1,
+                precision: 0,
+                font: { size: 11 },
+                callback: (v) => Number.isInteger(v) ? v : null
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+        }
+    }
+});
+
+// ── Inisialisasi chart kosong ─────────────────────────────
+const lineChart = new Chart(document.getElementById('lineChart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: 'Total Kunjungan',
+                data: [],
+                borderColor: '#0891b2',
+                backgroundColor: 'rgba(8,145,178,0.08)',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#0891b2',
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                fill: true,
+                tension: 0.3,
+            },
+            {
+                label: 'Selesai',
+                data: [],
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5,150,105,0.06)',
+                borderWidth: 2,
+                borderDash: [5, 3],
+                pointBackgroundColor: '#059669',
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.3,
+            }
+        ]
+    },
+    options: chartOpts('line')
+});
+
+const barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Kunjungan', data: [], backgroundColor: [], borderRadius: 7, borderSkipped: false }] },
+    options: chartOpts('bar')
+});
+
+// ── Load data via AJAX ────────────────────────────────────
+function loadChartData() {
+    const bulan  = document.getElementById('chartBulan').value;
+    const tahun  = document.getElementById('chartTahun').value;
+    const loader = document.getElementById('chartLoading');
+    loader.style.display = 'flex';
+
+    fetch(`{{ route('admin.api.chart') }}?bulan=${bulan}&tahun=${tahun}`)
+        .then(r => r.json())
+        .then(d => {
+            // Update label periode
+            document.getElementById('chartPeriodeLabel').textContent = d.namaBulan;
+
+            // Update line chart
+            lineChart.data.labels            = d.line.labels;
+            lineChart.data.datasets[0].data  = d.line.total;
+            lineChart.data.datasets[1].data  = d.line.selesai;
+            lineChart.update('active');
+
+            // Update bar chart
+            const hasData = d.bar.data.some(v => v > 0);
+            document.getElementById('barNoData').style.display = hasData ? 'none' : 'block';
+            barChart.data.labels                        = d.bar.labels;
+            barChart.data.datasets[0].data              = d.bar.data;
+            barChart.data.datasets[0].backgroundColor   = BAR_COLORS.slice(0, d.bar.labels.length);
+            barChart.update('active');
+        })
+        .catch(e => console.error('Chart load error', e))
+        .finally(() => { loader.style.display = 'none'; });
+}
+
+// ── Load otomatis saat halaman pertama kali dibuka ────────
+loadChartData();
+</script>
+@endpush

@@ -272,6 +272,20 @@
             font-family: monospace;
         }
 
+        .pwd-eye {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            background: none;
+            padding: 4px;
+        }
+        .pwd-eye:hover { color: #0891b2; }
+
         @media (max-width: 768px) {
             body { grid-template-columns: 1fr; }
             .left-panel { display: none; }
@@ -339,10 +353,14 @@
 
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <div class="input-wrapper">
+                    <div class="input-wrapper" style="position:relative">
                         <i class="fas fa-lock input-icon"></i>
-                        <input type="password" name="password" class="form-input {{ $errors->has('password') ? 'is-invalid' : '' }}"
-                            placeholder="••••••••" required>
+                        <input type="password" name="password" id="loginPwd"
+                            class="form-input {{ $errors->has('password') ? 'is-invalid' : '' }}"
+                            placeholder="••••••••" required style="padding-right:44px">
+                        <button type="button" class="pwd-eye" onclick="toggleLoginPwd()">
+                            <i class="fas fa-eye" id="loginPwdIcon"></i>
+                        </button>
                     </div>
                     @error('password')
                         <div class="invalid-msg">{{ $message }}</div>
@@ -380,5 +398,18 @@
             </div>
         </div>
     </div>
+<script>
+function toggleLoginPwd() {
+    var inp  = document.getElementById('loginPwd');
+    var icon = document.getElementById('loginPwdIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        inp.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
 </body>
 </html>
