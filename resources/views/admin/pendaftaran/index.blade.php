@@ -6,12 +6,41 @@
 <!-- FILTER -->
 <div class="card" style="margin-bottom:20px">
     <div class="card-body">
-        <form method="GET" action="{{ route('admin.pendaftaran.index') }}">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-                <div class="form-group" style="margin:0;flex:1;min-width:150px">
+        <form method="GET" action="{{ route('admin.pendaftaran.index') }}" id="filterForm">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+
+                <!-- Tanggal Spesifik -->
+                <div class="form-group" style="margin:0;min-width:150px">
                     <label class="form-label">Tanggal</label>
-                    <input type="date" name="tanggal" class="form-control" value="{{ request('tanggal', today()->format('Y-m-d')) }}">
+                    <input type="date" name="tanggal" id="inputTanggal" class="form-control"
+                        value="{{ request('tanggal', (!request('bulan') && !request('tahun')) ? today()->format('Y-m-d') : '') }}"
+                        onchange="clearBulanTahun()">
                 </div>
+
+                <!-- Bulan -->
+                <div class="form-group" style="margin:0;min-width:120px">
+                    <label class="form-label">Bulan</label>
+                    <select name="bulan" id="inputBulan" class="form-select" onchange="clearTanggal()">
+                        <option value="">-- Bulan --</option>
+                        @foreach(range(1,12) as $b)
+                            <option value="{{ $b }}" {{ request('bulan') == $b ? 'selected' : '' }}>
+                                {{ \Carbon\Carbon::create()->month($b)->locale('id')->monthName }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Tahun -->
+                <div class="form-group" style="margin:0;min-width:100px">
+                    <label class="form-label">Tahun</label>
+                    <select name="tahun" id="inputTahun" class="form-select" onchange="clearTanggal()">
+                        @foreach(range(date('Y'), date('Y')-3) as $t)
+                            <option value="{{ $t }}" {{ request('tahun', date('Y')) == $t ? 'selected' : '' }}>{{ $t }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Poli -->
                 <div class="form-group" style="margin:0;min-width:150px">
                     <label class="form-label">Poli</label>
                     <select name="poli_id" class="form-select">
@@ -21,20 +50,25 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group" style="margin:0;min-width:140px">
+
+                <!-- Status -->
+                <div class="form-group" style="margin:0;min-width:130px">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select">
                         <option value="">Semua Status</option>
-                        <option value="menunggu" {{ request('status') === 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                        <option value="menunggu"  {{ request('status') === 'menunggu'  ? 'selected' : '' }}>Menunggu</option>
                         <option value="dipanggil" {{ request('status') === 'dipanggil' ? 'selected' : '' }}>Dipanggil</option>
-                        <option value="selesai" {{ request('status') === 'selesai' ? 'selected' : '' }}>Selesai</option>
-                        <option value="batal" {{ request('status') === 'batal' ? 'selected' : '' }}>Batal</option>
+                        <option value="selesai"   {{ request('status') === 'selesai'   ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal"     {{ request('status') === 'batal'     ? 'selected' : '' }}>Batal</option>
                     </select>
                 </div>
-                <div class="form-group" style="margin:0;flex:2;min-width:200px">
+
+                <!-- Search -->
+                <div class="form-group" style="margin:0;flex:2;min-width:180px">
                     <label class="form-label">Cari Pasien / Kode</label>
-                    <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Nama pasien atau kode booking...">
+                    <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Nama atau kode booking...">
                 </div>
+
                 <button type="submit" class="btn btn-primary" style="flex-shrink:0">
                     <i class="fas fa-search"></i> Filter
                 </button>
@@ -52,7 +86,13 @@
             <span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px">{{ $pendaftaran->total() }} data</span>
         </div>
         <div style="font-size:13px;color:#64748b">
-            Tanggal: <strong>{{ request('tanggal') ? \Carbon\Carbon::parse(request('tanggal'))->locale('id')->isoFormat('dddd, D MMMM Y') : 'Hari Ini' }}</strong>
+            @if(request('bulan') && request('tahun'))
+                <strong>{{ \Carbon\Carbon::create()->month(request('bulan'))->locale('id')->monthName }} {{ request('tahun') }}</strong>
+            @elseif(request('tanggal'))
+                <strong>{{ \Carbon\Carbon::parse(request('tanggal'))->locale('id')->isoFormat('dddd, D MMMM Y') }}</strong>
+            @else
+                <strong>Hari Ini</strong>
+            @endif
         </div>
     </div>
     <div class="table-wrapper">
@@ -101,10 +141,10 @@
                         <form action="{{ route('admin.pendaftaran.status', $p->id) }}" method="POST" style="display:inline">
                             @csrf @method('PATCH')
                             <select name="status" class="form-select" style="padding:5px 8px;font-size:12px;width:120px" onchange="this.form.submit()">
-                                <option value="menunggu" {{ $p->status === 'menunggu' ? 'selected' : '' }}>⏳ Menunggu</option>
+                                <option value="menunggu"  {{ $p->status === 'menunggu'  ? 'selected' : '' }}>⏳ Menunggu</option>
                                 <option value="dipanggil" {{ $p->status === 'dipanggil' ? 'selected' : '' }}>📢 Dipanggil</option>
-                                <option value="selesai" {{ $p->status === 'selesai' ? 'selected' : '' }}>✅ Selesai</option>
-                                <option value="batal" {{ $p->status === 'batal' ? 'selected' : '' }}>❌ Batal</option>
+                                <option value="selesai"   {{ $p->status === 'selesai'   ? 'selected' : '' }}>✅ Selesai</option>
+                                <option value="batal"     {{ $p->status === 'batal'     ? 'selected' : '' }}>❌ Batal</option>
                             </select>
                         </form>
                     </td>
@@ -132,7 +172,7 @@
                 <tr>
                     <td colspan="9" style="text-align:center;padding:48px;color:#94a3b8">
                         <div style="font-size:36px;margin-bottom:10px">📭</div>
-                        Tidak ada data pendaftaran
+                        Tidak ada data pendaftaran untuk periode ini
                     </td>
                 </tr>
                 @endforelse
@@ -146,3 +186,14 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function clearBulanTahun() {
+    document.getElementById('inputBulan').value = '';
+}
+function clearTanggal() {
+    document.getElementById('inputTanggal').value = '';
+}
+</script>
+@endpush

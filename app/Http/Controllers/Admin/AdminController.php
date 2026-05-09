@@ -25,12 +25,12 @@ class AdminController extends Controller
     public function dashboard()
     {
         $stats = [
-            'total_pasien' => Pasien::count(),
-            'total_pendaftaran_hari_ini' => Pendaftaran::whereDate('tanggal_kunjungan', today())->count(),
-            'pendaftaran_menunggu' => Pendaftaran::where('status', 'menunggu')->whereDate('tanggal_kunjungan', today())->count(),
+            'total_pasien'                 => Pasien::count(),
+            'total_pendaftaran_hari_ini'   => Pendaftaran::whereDate('tanggal_kunjungan', today())->count(),
+            'pendaftaran_menunggu'         => Pendaftaran::where('status', 'menunggu')->whereDate('tanggal_kunjungan', today())->count(),
             'pendaftaran_selesai_hari_ini' => Pendaftaran::where('status', 'selesai')->whereDate('tanggal_kunjungan', today())->count(),
-            'total_pendaftaran_bulan_ini' => Pendaftaran::whereMonth('tanggal_kunjungan', now()->month)->count(),
-            'total_dokter' => Dokter::where('is_active', true)->count(),
+            'total_pendaftaran_bulan_ini'  => Pendaftaran::whereMonth('tanggal_kunjungan', now()->month)->whereYear('tanggal_kunjungan', now()->year)->count(),
+            'total_dokter'                 => Dokter::where('is_active', true)->count(),
         ];
 
         $pendaftaran_hari_ini = Pendaftaran::with(['pasien', 'dokter', 'poli'])
@@ -41,17 +41,59 @@ class AdminController extends Controller
 
         $satusehat_status = [
             'success' => Pendaftaran::where('satusehat_status', 'success')->count(),
-            'pending' => Pendaftaran::where('satusehat_status', 'pending')->count(),
-            'failed' => Pendaftaran::where('satusehat_status', 'failed')->count(),
+            'pending'  => Pendaftaran::where('satusehat_status', 'pending')->count(),
+            'failed'   => Pendaftaran::where('satusehat_status', 'failed')->count(),
         ];
 
-        return view('admin.dashboard', compact('stats', 'pendaftaran_hari_ini', 'satusehat_status'));
+        // Chart: pendaftaran per bulan (12 bulan terakhir) — line chart
+        $chartLabels  = [];
+        $chartData    = [];
+        $chartSelesai = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $bln = now()->subMonths($i);
+            $chartLabels[]  = $bln->locale('id')->isoFormat('MMM YYYY');
+            $chartData[]    = Pendaftaran::whereYear('tanggal_kunjungan', $bln->year)
+                ->whereMonth('tanggal_kunjungan', $bln->month)->count();
+            $chartSelesai[] = Pendaftaran::whereYear('tanggal_kunjungan', $bln->year)
+                ->whereMonth('tanggal_kunjungan', $bln->month)->where('status', 'selesai')->count();
+        }
+
+        // Chart: pendaftaran per poli bulan ini — bar chart
+        $poliBarLabels = [];
+        $poliBarData   = [];
+        foreach (Poli::where('is_active', true)->get() as $poli) {
+            $cnt = Pendaftaran::where('poli_id', $poli->id)
+                ->whereMonth('tanggal_kunjungan', now()->month)
+                ->whereYear('tanggal_kunjungan', now()->year)
+                ->count();
+            if ($cnt > 0) {
+                $poliBarLabels[] = $poli->nama;
+                $poliBarData[]   = $cnt;
+            }
+        }
+
+        return view('admin.dashboard', compact(
+            'stats', 'pendaftaran_hari_ini', 'satusehat_status',
+            'chartLabels', 'chartData', 'chartSelesai',
+            'poliBarLabels', 'poliBarData'
+        ));
     }
 
     // ======== PASIEN MANAGEMENT ========
     public function pasienIndex(Request $request)
     {
         $query = Pasien::with('user');
+
+        if ($request->jenis_kelamin) {
+            $query->where('jenis_kelamin', $request->jenis_kelamin);
+        }
+
+        if ($request->bulan_kunjungan && $request->tahun_kunjungan) {
+            $query->whereHas('pendaftaran', function ($q) use ($request) {
+                $q->whereMonth('tanggal_kunjungan', $request->bulan_kunjungan)
+                  ->whereYear('tanggal_kunjungan', $request->tahun_kunjungan);
+            });
+        }
 
         if ($request->search) {
             $query->where(function ($q) use ($request) {
@@ -109,7 +151,11 @@ class AdminController extends Controller
     {
         $query = Pendaftaran::with(['pasien', 'dokter', 'poli']);
 
-        if ($request->tanggal) {
+        // Filter: bulan+tahun OR tanggal spesifik OR default hari ini
+        if ($request->bulan && $request->tahun) {
+            $query->whereMonth('tanggal_kunjungan', $request->bulan)
+                  ->whereYear('tanggal_kunjungan', $request->tahun);
+        } elseif ($request->tanggal) {
             $query->whereDate('tanggal_kunjungan', $request->tanggal);
         } else {
             $query->whereDate('tanggal_kunjungan', today());
@@ -132,8 +178,8 @@ class AdminController extends Controller
             });
         }
 
-        $pendaftaran = $query->orderBy('no_antrian')->paginate(20);
-        $poli = Poli::where('is_active', true)->get();
+        $pendaftaran = $query->orderBy('tanggal_kunjungan')->orderBy('no_antrian')->paginate(20);
+        $poli        = Poli::where('is_active', true)->get();
 
         return view('admin.pendaftaran.index', compact('pendaftaran', 'poli'));
     }
@@ -182,10 +228,28 @@ class AdminController extends Controller
     }
 
     // ======== DOKTER MANAGEMENT ========
-    public function dokterIndex()
+    public function dokterIndex(Request $request)
     {
-        $dokter = Dokter::with('poli')->paginate(15);
-        return view('admin.dokter.index', compact('dokter'));
+        $query = Dokter::with('poli');
+
+        if ($request->poli_id) {
+            $query->where('poli_id', $request->poli_id);
+        }
+        if ($request->spesialisasi) {
+            $query->where('spesialisasi', 'like', '%' . $request->spesialisasi . '%');
+        }
+        if ($request->hari) {
+            $hari = $request->hari;
+            $query->where(function ($q) use ($hari) {
+                $q->whereNotNull('jadwal')
+                  ->whereRaw("JSON_EXTRACT(jadwal, '$.{$hari}.aktif') = true");
+            });
+        }
+
+        $dokter = $query->paginate(15);
+        $poli   = Poli::where('is_active', true)->get();
+
+        return view('admin.dokter.index', compact('dokter', 'poli'));
     }
 
     public function dokterCreate()
@@ -562,18 +626,163 @@ class AdminController extends Controller
         $data = Pendaftaran::with(['pasien', 'dokter', 'poli'])
             ->whereMonth('tanggal_kunjungan', $bulan)
             ->whereYear('tanggal_kunjungan', $tahun)
+            ->orderBy('tanggal_kunjungan')
             ->get();
 
         $byPoli = $data->groupBy('poli_id')->map(function ($items) {
             return [
-                'nama' => $items->first()->poli->nama ?? '-',
-                'total' => $items->count(),
+                'nama'    => $items->first()->poli->nama ?? '-',
+                'total'   => $items->count(),
                 'selesai' => $items->where('status', 'selesai')->count(),
+                'baru'    => $items->where('jenis_kunjungan', 'baru')->count(),
+                'kontrol' => $items->where('jenis_kunjungan', 'kontrol')->count(),
             ];
-        });
+        })->sortByDesc('total');
 
         $byStatus = $data->groupBy('status')->map->count();
 
-        return view('admin.laporan', compact('data', 'byPoli', 'byStatus', 'bulan', 'tahun'));
+        // Chart harian dalam bulan ini
+        $hariList  = [];
+        $hariData  = [];
+        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $hariList[] = $d;
+            $hariData[] = $data->filter(fn($p) => $p->tanggal_kunjungan->day === $d)->count();
+        }
+
+        $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
+
+        return view('admin.laporan', compact(
+            'data', 'byPoli', 'byStatus', 'bulan', 'tahun', 'namabulan',
+            'hariList', 'hariData'
+        ));
+    }
+
+    public function laporanExportExcel(Request $request)
+    {
+        $bulan     = $request->bulan ?? now()->month;
+        $tahun     = $request->tahun ?? now()->year;
+        $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM_YYYY');
+
+        $data = Pendaftaran::with(['pasien', 'dokter', 'poli'])
+            ->whereMonth('tanggal_kunjungan', $bulan)
+            ->whereYear('tanggal_kunjungan', $tahun)
+            ->orderBy('tanggal_kunjungan')
+            ->get();
+
+        $filename = "Laporan_Kunjungan_{$namabulan}.csv";
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use ($data, $bulan, $tahun) {
+            $handle = fopen('php://output', 'w');
+            // BOM UTF-8 agar Excel baca karakter Indonesia dengan benar
+            fputs($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, [
+                'No', 'Kode Booking', 'Tanggal', 'Jam', 'No. RM',
+                'Nama Pasien', 'NIK', 'Poli', 'Dokter',
+                'Jenis Kunjungan', 'Keluhan', 'Status', 'SatuSehat Status',
+                'Biaya (Rp)', 'Tekanan Darah', 'Suhu', 'Nadi', 'BB', 'TB',
+            ]);
+
+            foreach ($data as $i => $p) {
+                fputcsv($handle, [
+                    $i + 1,
+                    $p->kode_booking,
+                    $p->tanggal_kunjungan->format('d/m/Y'),
+                    $p->jam_kunjungan,
+                    $p->pasien->no_rm ?? '-',
+                    $p->pasien->nama_lengkap ?? '-',
+                    $p->pasien->nik ?? '-',
+                    $p->poli->nama ?? '-',
+                    $p->dokter->nama_lengkap ?? '-',
+                    $p->jenis_kunjungan === 'baru' ? 'Baru' : 'Kontrol',
+                    $p->keluhan,
+                    ucfirst($p->status),
+                    ucfirst($p->satusehat_status),
+                    number_format($p->biaya_konsultasi, 0, ',', '.'),
+                    $p->tekanan_darah ?? '-',
+                    $p->suhu ?? '-',
+                    $p->nadi ?? '-',
+                    $p->berat_badan ?? '-',
+                    $p->tinggi_badan ?? '-',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /** AJAX — data chart dashboard */
+    public function dashboardChartData(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $bulan = (int) ($request->bulan ?? now()->month);
+        $tahun = (int) ($request->tahun ?? now()->year);
+
+        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
+        $namaBulan   = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
+
+        // Line chart — kunjungan harian dalam bulan yang dipilih
+        $lineLabels  = [];
+        $lineTotal   = [];
+        $lineSelesai = [];
+
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $lineLabels[]  = $d;
+            $base = Pendaftaran::whereYear('tanggal_kunjungan', $tahun)
+                               ->whereMonth('tanggal_kunjungan', $bulan)
+                               ->whereDay('tanggal_kunjungan', $d);
+            $lineTotal[]   = (clone $base)->count();
+            $lineSelesai[] = (clone $base)->where('status', 'selesai')->count();
+        }
+
+        // Bar chart — kunjungan per poli dalam bulan yang dipilih
+        $barLabels = [];
+        $barData   = [];
+        foreach (Poli::where('is_active', true)->get() as $poli) {
+            $cnt = Pendaftaran::where('poli_id', $poli->id)
+                ->whereYear('tanggal_kunjungan', $tahun)
+                ->whereMonth('tanggal_kunjungan', $bulan)
+                ->count();
+            $barLabels[] = $poli->nama;
+            $barData[]   = $cnt;
+        }
+
+        return response()->json([
+            'namaBulan' => $namaBulan,
+            'line' => ['labels' => $lineLabels, 'total' => $lineTotal, 'selesai' => $lineSelesai],
+            'bar'  => ['labels' => $barLabels,  'data'  => $barData],
+        ]);
+    }
+
+    public function laporanExportPdf(Request $request)
+    {
+        $bulan     = $request->bulan ?? now()->month;
+        $tahun     = $request->tahun ?? now()->year;
+
+        $data = Pendaftaran::with(['pasien', 'dokter', 'poli'])
+            ->whereMonth('tanggal_kunjungan', $bulan)
+            ->whereYear('tanggal_kunjungan', $tahun)
+            ->orderBy('tanggal_kunjungan')
+            ->get();
+
+        $byPoli    = $data->groupBy('poli_id')->map(fn($items) => [
+            'nama'    => $items->first()->poli->nama ?? '-',
+            'total'   => $items->count(),
+            'selesai' => $items->where('status', 'selesai')->count(),
+        ])->sortByDesc('total');
+        $byStatus  = $data->groupBy('status')->map->count();
+        $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
+
+        return view('admin.laporan-pdf', compact('data', 'byPoli', 'byStatus', 'bulan', 'tahun', 'namabulan'));
     }
 }

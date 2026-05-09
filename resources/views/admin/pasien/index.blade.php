@@ -3,16 +3,61 @@
 @section('page-title', 'Data Pasien')
 
 @section('content')
-<!-- SEARCH -->
+<!-- FILTER -->
 <div class="card" style="margin-bottom:20px">
     <div class="card-body">
         <form method="GET" action="{{ route('admin.pasien.index') }}">
-            <div style="display:flex;gap:12px">
-                <input type="text" name="search" class="form-control" value="{{ request('search') }}"
-                    placeholder="Cari nama, No. RM, atau NIK..." style="flex:1">
-                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Cari</button>
-                @if(request('search'))
-                    <a href="{{ route('admin.pasien.index') }}" class="btn btn-outline">Reset</a>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+
+                <!-- Filter Jenis Kelamin -->
+                <div class="form-group" style="margin:0;min-width:140px">
+                    <label class="form-label">Jenis Kelamin</label>
+                    <select name="jenis_kelamin" class="form-select">
+                        <option value="">Semua</option>
+                        <option value="L" {{ request('jenis_kelamin') === 'L' ? 'selected' : '' }}>Laki-laki</option>
+                        <option value="P" {{ request('jenis_kelamin') === 'P' ? 'selected' : '' }}>Perempuan</option>
+                    </select>
+                </div>
+
+                <!-- Filter Bulan Kunjungan -->
+                <div class="form-group" style="margin:0;min-width:120px">
+                    <label class="form-label">Bulan Kunjungan</label>
+                    <select name="bulan_kunjungan" class="form-select">
+                        <option value="">Semua Bulan</option>
+                        @foreach(range(1,12) as $b)
+                            <option value="{{ $b }}" {{ request('bulan_kunjungan') == $b ? 'selected' : '' }}>
+                                {{ \Carbon\Carbon::create()->month($b)->locale('id')->monthName }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filter Tahun Kunjungan -->
+                <div class="form-group" style="margin:0;min-width:100px">
+                    <label class="form-label">Tahun</label>
+                    <select name="tahun_kunjungan" class="form-select">
+                        <option value="">Semua Tahun</option>
+                        @foreach(range(date('Y'), date('Y')-3) as $t)
+                            <option value="{{ $t }}" {{ request('tahun_kunjungan') == $t ? 'selected' : '' }}>{{ $t }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Search by Nama/RM/NIK -->
+                <div class="form-group" style="margin:0;flex:1;min-width:220px">
+                    <label class="form-label">Cari Nama / No. RM / NIK</label>
+                    <div style="position:relative">
+                        <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px"></i>
+                        <input type="text" name="search" class="form-control" value="{{ request('search') }}"
+                            placeholder="Cari nama, No. RM, atau NIK..." style="padding-left:36px">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="flex-shrink:0">
+                    <i class="fas fa-search"></i> Cari
+                </button>
+                @if(request()->hasAny(['search','jenis_kelamin','bulan_kunjungan','tahun_kunjungan']))
+                    <a href="{{ route('admin.pasien.index') }}" class="btn btn-outline" style="flex-shrink:0">Reset</a>
                 @endif
             </div>
         </form>
@@ -26,6 +71,19 @@
             👥 Daftar Pasien
             <span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px">{{ $pasien->total() }} total</span>
         </div>
+        @if(request('jenis_kelamin') || request('bulan_kunjungan'))
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            @if(request('jenis_kelamin'))
+                <span class="badge badge-info">{{ request('jenis_kelamin') === 'L' ? 'Laki-laki' : 'Perempuan' }}</span>
+            @endif
+            @if(request('bulan_kunjungan'))
+                <span class="badge badge-secondary">
+                    {{ \Carbon\Carbon::create()->month(request('bulan_kunjungan'))->locale('id')->monthName }}
+                    {{ request('tahun_kunjungan') }}
+                </span>
+            @endif
+        </div>
+        @endif
     </div>
     <div class="table-wrapper">
         <table>
@@ -56,7 +114,7 @@
                     <td><span style="font-size:12px;font-family:monospace">{{ $p->nik }}</span></td>
                     <td>
                         <span style="font-weight:700;color:{{ $p->jenis_kelamin === 'L' ? '#0891b2' : '#ec4899' }}">
-                            {{ $p->jenis_kelamin }}
+                            {{ $p->jenis_kelamin === 'L' ? '♂' : '♀' }} {{ $p->jenis_kelamin }}
                         </span>
                     </td>
                     <td style="font-size:12px">

@@ -22,16 +22,16 @@
 .step-line { flex:1; height:2px; background:var(--gray-200); margin:0 10px; }
 .step-line.done { background:var(--success); }
 
-.poli-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.poli-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 .poli-card {
-    border:2px solid var(--gray-200); border-radius:14px; padding:18px 14px;
+    border:2px solid var(--gray-200); border-radius:12px; padding:14px 10px;
     text-align:center; cursor:pointer; transition:all 0.2s;
     background:white;
 }
 .poli-card:hover { border-color:var(--accent); background:#f0f9ff; }
 .poli-card.selected { border-color:var(--accent); background:#e0f2fe; }
-.poli-icon { font-size:28px; margin-bottom:8px; }
-.poli-name { font-size:12px; font-weight:700; color:#0c4a6e; }
+.poli-icon { font-size:24px; margin-bottom:6px; }
+.poli-name { font-size:11px; font-weight:700; color:#0c4a6e; line-height:1.3; }
 .poli-info { font-size:10px; color:#94a3b8; margin-top:2px; }
 
 .dokter-card {
