@@ -124,10 +124,12 @@ class AdminController extends Controller
         }
 
         if ($request->search) {
-            $query->whereHas('pasien', function ($q) use ($request) {
-                $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                    ->orWhere('no_rm', 'like', '%' . $request->search . '%');
-            })->orWhere('kode_booking', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('pasien', function ($sq) use ($request) {
+                    $sq->where('nama_lengkap', 'like', '%' . $request->search . '%')
+                        ->orWhere('no_rm', 'like', '%' . $request->search . '%');
+                })->orWhere('kode_booking', 'like', '%' . $request->search . '%');
+            });
         }
 
         $pendaftaran = $query->orderBy('no_antrian')->paginate(20);
@@ -287,6 +289,192 @@ class AdminController extends Controller
     }
 
     // ======== SATUSEHAT ========
+
+    /**
+     * Test koneksi ke SatuSehat API — bisa dicek via browser atau Postman
+     * GET /admin/satusehat/test-koneksi
+     */
+    public function satusehatTestKoneksi()
+    {
+        $hasil = [
+            'waktu'           => now()->toDateTimeString(),
+            'base_url'        => config('satusehat.base_url'),
+            'organization_id' => config('satusehat.organization_id'),
+            'location_id'     => config('satusehat.location_id') ?: '(belum diset)',
+            'use_dummy'       => config('satusehat.use_dummy'),
+        ];
+
+        // 1. Coba ambil access token
+        $token = $this->satuSehat->getAccessToken();
+        $hasil['access_token_status'] = $token && $token !== 'dummy_access_token_for_development'
+            ? 'BERHASIL ✅'
+            : 'GAGAL / DUMMY ❌';
+        $hasil['access_token_preview'] = $token ? substr($token, 0, 30) . '...' : null;
+
+        // 2. Coba GET Organization
+        $org = $this->satuSehat->getOrganization();
+        $hasil['organization_status'] = isset($org['resourceType']) && $org['resourceType'] === 'Organization'
+            ? 'BERHASIL ✅'
+            : (isset($org['_dummy']) ? 'DUMMY (tidak terhubung) ⚠️' : 'GAGAL ❌');
+        $hasil['organization_name']   = $org['name'] ?? null;
+        $hasil['organization_data']   = $org;
+
+        return response()->json($hasil, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Cari pasien di SatuSehat by NIK — GET /admin/satusehat/cari-pasien?nik=XXXX
+     * Juga bisa by ID: ?id=P02478375538
+     */
+    public function satusehatCariPasien(\Illuminate\Http\Request $request)
+    {
+        $nik = trim($request->get('nik', ''));
+        $id  = trim($request->get('id', ''));
+
+        if (!$nik && !$id) {
+            return response()->json([
+                'petunjuk' => 'Gunakan: ?nik=9271060312000001 atau ?id=P02478375538',
+                'dummy_nik' => [
+                    '9271060312000001' => 'Dummy pasien #1',
+                    '9271060312000002' => 'Dummy pasien #2',
+                    '9271060312000003' => 'Dummy pasien #3',
+                ],
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($id) {
+            $resource = $this->satuSehat->getPatientById($id);
+            if (empty($resource)) {
+                return response()->json(['error' => 'Pasien tidak ditemukan', 'id' => $id], 404);
+            }
+            $info = $this->satuSehat->extractPatientInfo($resource);
+            return response()->json([
+                'ditemukan'     => true,
+                'info_ringkas'  => $info,
+                'fhir_resource' => $resource,
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        $result = $this->satuSehat->getPatientByNik($nik);
+        $total  = $result['total'] ?? 0;
+
+        if ($total === 0) {
+            return response()->json([
+                'ditemukan' => false,
+                'pesan'     => "NIK $nik tidak ditemukan di SatuSehat",
+                'response'  => $result,
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        $resource = $result['entry'][0]['resource'];
+        $info     = $this->satuSehat->extractPatientInfo($resource);
+
+        // Jika NIK sama dengan pasien di DB lokal, update satusehat_id
+        $pasienLokal = \App\Models\Pasien::where('nik', $nik)->first();
+        $updated     = false;
+        if ($pasienLokal && !$pasienLokal->satusehat_id) {
+            $pasienLokal->update(['satusehat_id' => $info['id']]);
+            $updated = true;
+        }
+
+        return response()->json([
+            'ditemukan'         => true,
+            'total'             => $total,
+            'info_ringkas'      => $info,
+            'pasien_lokal'      => $pasienLokal ? ['id' => $pasienLokal->id, 'nama' => $pasienLokal->nama_lengkap, 'satusehat_id_updated' => $updated] : null,
+            'fhir_resource'     => $resource,
+        ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Cari dokter (Practitioner) di SatuSehat by NIK — GET /admin/satusehat/cari-dokter?nik=XXXX
+     * Juga bisa by ID: ?id=UUID
+     */
+    public function satusehatCariDokter(\Illuminate\Http\Request $request)
+    {
+        $nik = trim($request->get('nik', ''));
+        $id  = trim($request->get('id', ''));
+
+        if (!$nik && !$id) {
+            return response()->json([
+                'petunjuk' => 'Gunakan: ?nik=NIK_DOKTER atau ?id=UUID_PRACTITIONER',
+                'cara_pakai' => [
+                    'by NIK'  => '/admin/satusehat/cari-dokter?nik=3171071012890005',
+                    'by ID'   => '/admin/satusehat/cari-dokter?id=UUID-dari-SatuSehat',
+                ],
+                'catatan' => 'NIK harus NIK dokter yang sudah terdaftar di SatuSehat',
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($id) {
+            $resource = $this->satuSehat->getPractitionerById($id);
+            if (empty($resource)) {
+                return response()->json(['error' => 'Practitioner tidak ditemukan', 'id' => $id], 404);
+            }
+            $info = $this->satuSehat->extractPractitionerInfo($resource);
+            return response()->json([
+                'ditemukan'     => true,
+                'info_ringkas'  => $info,
+                'fhir_resource' => $resource,
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        $result = $this->satuSehat->getPractitioner($nik);
+        $total  = $result['total'] ?? 0;
+
+        if ($total === 0) {
+            return response()->json([
+                'ditemukan' => false,
+                'pesan'     => "NIK $nik tidak ditemukan sebagai Practitioner di SatuSehat",
+                'solusi'    => 'NIK dokter harus sudah terdaftar di SatuSehat (STR harus aktif)',
+            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        $resource = $result['entry'][0]['resource'];
+        $info     = $this->satuSehat->extractPractitionerInfo($resource);
+
+        // Auto-update satusehat_id di DB lokal jika NIK cocok
+        $dokterLokal = \App\Models\Dokter::where('nik', $nik)->first();
+        $updated     = false;
+        if ($dokterLokal && !$dokterLokal->satusehat_id) {
+            $dokterLokal->update(['satusehat_id' => $info['id']]);
+            $updated = true;
+        }
+
+        return response()->json([
+            'ditemukan'      => true,
+            'total'          => $total,
+            'info_ringkas'   => $info,
+            'dokter_lokal'   => $dokterLokal ? ['id' => $dokterLokal->id, 'nama' => $dokterLokal->nama_lengkap, 'satusehat_id_updated' => $updated] : null,
+            'fhir_resource'  => $resource,
+        ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Cari kode wilayah BPS via SatuSehat — GET /admin/satusehat/cari-wilayah?nama=bondowoso&part=district
+     */
+    public function satusehatCariWilayah(\Illuminate\Http\Request $request)
+    {
+        $nama   = $request->get('nama', '');
+        $part   = $request->get('part', 'district'); // province|city|district|village
+        $parent = $request->get('parent', '');
+
+        if (!$nama) {
+            return response()->json([
+                'petunjuk' => 'Gunakan query: ?nama=bondowoso&part=district&parent=3511',
+                'contoh'   => [
+                    'Cari provinsi'   => '?nama=jawa+timur&part=province',
+                    'Cari kab/kota'   => '?nama=bondowoso&part=city&parent=35',
+                    'Cari kecamatan'  => '?nama=bondowoso&part=district&parent=3511',
+                    'Cari kelurahan'  => '?nama=kademangan&part=village&parent=351101',
+                ],
+            ]);
+        }
+
+        $result = $this->satuSehat->searchAdministrativeArea($nama, $part, $parent);
+        return response()->json($result, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
     public function satusehatStatus()
     {
         $organization = $this->satuSehat->getOrganization();
@@ -311,28 +499,58 @@ class AdminController extends Controller
         $pasien = $pendaftaran->pasien;
         $dokter = $pendaftaran->dokter;
 
+        if (!$pasien) {
+            return back()->withErrors(['error' => 'Data pasien tidak ditemukan.']);
+        }
+
+        // Pastikan pasien punya SatuSehat ID
+        if (!$pasien->satusehat_id) {
+            $ssPatient = $this->satuSehat->getOrCreatePatient([
+                'nik'           => $pasien->nik,
+                'nama_lengkap'  => $pasien->nama_lengkap,
+                'no_hp'         => $pasien->no_hp,
+                'jenis_kelamin' => $pasien->jenis_kelamin,
+                'tanggal_lahir' => $pasien->tanggal_lahir
+                    ? $pasien->tanggal_lahir->format('Y-m-d') : null,
+                'alamat'        => $pasien->alamat,
+                'kabupaten'     => $pasien->kabupaten,
+                'kode_pos'      => $pasien->kode_pos,
+            ]);
+
+            if (!empty($ssPatient['success']) && !empty($ssPatient['data']['id'])) {
+                $pasien->update(['satusehat_id' => $ssPatient['data']['id']]);
+                $pasien->refresh();
+            } else {
+                return back()->withErrors(['error' => 'Gagal mendaftarkan pasien ke SatuSehat. Cek log untuk detail.']);
+            }
+        }
+
         $encounterData = [
-            'patient_id' => $pasien->satusehat_id ?? 'patient-dummy-' . $pasien->id,
-            'nama_pasien' => $pasien->nama_lengkap,
-            'dokter_id' => $dokter->satusehat_id ?? 'practitioner-dummy',
-            'nama_dokter' => $dokter->nama_lengkap,
+            'patient_id'        => $pasien->satusehat_id,
+            'nama_pasien'       => $pasien->nama_lengkap,
+            'dokter_id'         => $dokter->satusehat_id ?? '',
+            'nama_dokter'       => $dokter ? $dokter->nama_lengkap : '',
             'tanggal_kunjungan' => $pendaftaran->tanggal_kunjungan->format('Y-m-d'),
-            'jam_kunjungan' => $pendaftaran->jam_kunjungan,
-            'keluhan' => $pendaftaran->keluhan,
+            'jam_kunjungan'     => $pendaftaran->jam_kunjungan,
+            'keluhan'           => $pendaftaran->keluhan,
+            'kode_booking'      => $pendaftaran->kode_booking,
+            'nama_poli'         => $pendaftaran->poli->nama ?? 'Rawat Jalan',
         ];
 
         $response = $this->satuSehat->createEncounter($encounterData);
 
-        if ($response['success']) {
+        if (!empty($response['success'])) {
             $pendaftaran->update([
                 'satusehat_encounter_id' => $response['data']['id'] ?? null,
-                'satusehat_response' => $response['data'],
-                'satusehat_status' => 'success',
+                'satusehat_response'     => $response['data'],
+                'satusehat_status'       => 'success',
             ]);
             return back()->with('success', 'Sinkronisasi SatuSehat berhasil.');
         }
 
-        return back()->withErrors(['error' => 'Sinkronisasi gagal.']);
+        return back()->withErrors([
+            'error' => 'Sinkronisasi Encounter gagal: ' . ($response['error'] ?? 'Unknown error'),
+        ]);
     }
 
     // ======== LAPORAN ========

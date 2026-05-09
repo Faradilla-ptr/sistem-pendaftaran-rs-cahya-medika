@@ -60,7 +60,13 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">SatuSehat Practitioner ID</label>
-                    <input type="text" name="satusehat_id" class="form-control" value="{{ old('satusehat_id') }}" placeholder="ID dari SatuSehat">
+                    <div style="display:flex;gap:8px">
+                        <input type="text" name="satusehat_id" id="satusehat_id" class="form-control" value="{{ old('satusehat_id') }}" placeholder="Auto-isi dari tombol Cari, atau isi manual">
+                        <button type="button" onclick="cariPractitioner()" class="btn btn-outline btn-sm" style="flex-shrink:0;white-space:nowrap">
+                            <i class="fas fa-search"></i> Cari by NIK
+                        </button>
+                    </div>
+                    <div id="ssResult" style="display:none;margin-top:6px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px"></div>
                 </div>
             </div>
         </div>
@@ -103,6 +109,36 @@
 function toggleJadwal(hari, checked) {
     document.getElementById('jadwal_time_' + hari).style.display = checked ? 'flex' : 'none';
     document.getElementById('jadwal_off_' + hari).style.display = checked ? 'none' : 'block';
+}
+
+async function cariPractitioner() {
+    const nik = document.querySelector('[name="nik"]').value.trim();
+    if (!nik || nik.length !== 16) {
+        alert('Isi NIK Dokter (16 digit) terlebih dahulu, lalu klik Cari by NIK');
+        return;
+    }
+    const res = document.getElementById('ssResult');
+    res.style.display = 'block';
+    res.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari di SatuSehat...';
+    try {
+        const r = await fetch(`/admin/satusehat/cari-dokter?nik=${nik}`);
+        const d = await r.json();
+        if (d.ditemukan) {
+            const info = d.info_ringkas;
+            document.getElementById('satusehat_id').value = info.id;
+            res.style.background = '#f0fdf4';
+            res.style.borderColor = '#bbf7d0';
+            res.innerHTML = `✅ <b>${info.nama_lengkap || 'Nama termasked'}</b> ditemukan!<br>SatuSehat ID: <code>${info.id}</code> (sudah diisi otomatis)`;
+        } else {
+            res.style.background = '#fffbeb';
+            res.style.borderColor = '#fde68a';
+            res.innerHTML = `⚠️ NIK ini belum terdaftar sebagai Practitioner di SatuSehat.<br><small>Dokter harus memiliki STR aktif dan sudah didaftarkan ke SatuSehat.</small>`;
+        }
+    } catch(e) {
+        res.style.background = '#fee2e2';
+        res.style.borderColor = '#fecaca';
+        res.innerHTML = `❌ Gagal terhubung ke SatuSehat: ${e.message}`;
+    }
 }
 </script>
 @endpush
