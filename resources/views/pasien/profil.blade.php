@@ -121,6 +121,38 @@
             <label class="form-label">Kode Pos</label>
             <input type="text" name="kode_pos" class="form-control" value="{{ old('kode_pos', $pasien->kode_pos ?? '') }}">
         </div>
+        {{-- Kode Wilayah untuk integrasi SatuSehat --}}
+        <div style="grid-column:1/-1;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-top:4px">
+            <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">
+                🔗 Kode Wilayah BPS — untuk Integrasi SatuSehat
+                <a href="https://sig.bps.go.id/basisdata/index" target="_blank" style="font-weight:400;font-size:10px;margin-left:8px;color:#0891b2">Cari kode BPS →</a>
+            </div>
+            <div style="font-size:10px;color:#b45309;margin-bottom:10px">
+                ⚠️ Staging SatuSehat hanya mendukung kode kota besar (Surabaya, Jakarta, dll). Default diisi Surabaya untuk testing. Ganti ke kode asli saat production.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                    <label class="form-label" style="font-size:10px">Kode Provinsi (2 digit)</label>
+                    <input type="text" name="kode_provinsi" maxlength="2" class="form-control" style="font-family:monospace"
+                        value="{{ old('kode_provinsi', $pasien->kode_provinsi ?? '35') }}" placeholder="35 = Jawa Timur">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:10px">Kode Kabupaten/Kota (4 digit)</label>
+                    <input type="text" name="kode_kabupaten" maxlength="4" class="form-control" style="font-family:monospace"
+                        value="{{ old('kode_kabupaten', $pasien->kode_kabupaten ?? '3578') }}" placeholder="3578 = Kota Surabaya">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:10px">Kode Kecamatan (6 digit)</label>
+                    <input type="text" name="kode_kecamatan" maxlength="6" class="form-control" style="font-family:monospace"
+                        value="{{ old('kode_kecamatan', $pasien->kode_kecamatan ?? '357801') }}" placeholder="357801">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:10px">Kode Kelurahan/Desa (10 digit)</label>
+                    <input type="text" name="kode_kelurahan" maxlength="10" class="form-control" style="font-family:monospace"
+                        value="{{ old('kode_kelurahan', $pasien->kode_kelurahan ?? '3578011001') }}" placeholder="3578011001">
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -124,6 +124,31 @@
                         <input type="text" name="kode_pos" class="form-control" value="{{ old('kode_pos', $pasien->kode_pos) }}">
                     </div>
                 </div>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-top:8px">
+                    <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:10px">🔗 Kode Wilayah BPS (untuk SatuSehat)</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div class="form-group">
+                            <label class="form-label" style="font-size:10px">Kode Provinsi</label>
+                            <input type="text" name="kode_provinsi" maxlength="2" class="form-control" style="font-family:monospace"
+                                value="{{ old('kode_provinsi', $pasien->kode_provinsi ?? '35') }}" placeholder="35">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-size:10px">Kode Kabupaten</label>
+                            <input type="text" name="kode_kabupaten" maxlength="4" class="form-control" style="font-family:monospace"
+                                value="{{ old('kode_kabupaten', $pasien->kode_kabupaten ?? '3511') }}" placeholder="3511">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-size:10px">Kode Kecamatan</label>
+                            <input type="text" name="kode_kecamatan" maxlength="6" class="form-control" style="font-family:monospace"
+                                value="{{ old('kode_kecamatan', $pasien->kode_kecamatan ?? '351101') }}" placeholder="351101">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-size:10px">Kode Kelurahan</label>
+                            <input type="text" name="kode_kelurahan" maxlength="10" class="form-control" style="font-family:monospace"
+                                value="{{ old('kode_kelurahan', $pasien->kode_kelurahan ?? '3511010001') }}" placeholder="3511010001">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div style="display:flex;gap:12px">
