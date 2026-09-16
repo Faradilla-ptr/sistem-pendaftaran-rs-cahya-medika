@@ -168,9 +168,13 @@
     </a>
 
     @if($pendaftaran->status === 'menunggu')
-    <button onclick="showCancelModal()" class="btn btn-danger">
+    <button onclick="confirmCancelQueue()" class="btn btn-danger">
         <i class="fas fa-times-circle"></i> Batalkan Pendaftaran
     </button>
+    <form id="formCancelQueue" action="{{ route('pasien.pendaftaran.cancel', $pendaftaran->id) }}" method="POST" style="display:none">
+        @csrf
+        <input type="hidden" name="alasan" id="alasanCancelInput">
+    </form>
     @endif
 
     <button onclick="window.print()" class="btn btn-outline" style="margin-left:auto">
@@ -178,37 +182,35 @@
     </button>
 </div>
 
-<!-- CANCEL MODAL -->
-<div id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:none;align-items:center;justify-content:center">
-    <div style="background:white;border-radius:20px;padding:28px;width:400px;max-width:90vw">
-        <div style="font-size:36px;text-align:center;margin-bottom:12px">⚠️</div>
-        <h3 style="text-align:center;margin-bottom:8px;color:#0c4a6e">Batalkan Pendaftaran?</h3>
-        <p style="text-align:center;font-size:13px;color:#64748b;margin-bottom:20px">Tindakan ini tidak dapat dibatalkan. Anda perlu mendaftar ulang jika ingin berobat.</p>
-
-        <form action="{{ route('pasien.pendaftaran.cancel', $pendaftaran->id) }}" method="POST">
-            @csrf
-            <div class="form-group" style="margin-bottom:16px">
-                <label class="form-label">Alasan Pembatalan (opsional)</label>
-                <textarea name="alasan" class="form-control" rows="3" placeholder="Contoh: Ada keperluan mendadak..."></textarea>
-            </div>
-            <div style="display:flex;gap:10px">
-                <button type="button" onclick="hideCancelModal()" class="btn btn-outline" style="flex:1">Batal</button>
-                <button type="submit" class="btn btn-danger" style="flex:1">Ya, Batalkan</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function showCancelModal() {
-    document.getElementById('cancelModal').style.display = 'flex';
-}
-function hideCancelModal() {
-    document.getElementById('cancelModal').style.display = 'none';
+function confirmCancelQueue() {
+    Swal.fire({
+        title: 'Batalkan Pendaftaran?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Masukkan alasan pembatalan (opsional):',
+        icon: 'warning',
+        input: 'textarea',
+        inputPlaceholder: 'Contoh: Ada keperluan mendadak...',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: '<i class="fas fa-trash"></i> Ya, Batalkan',
+        cancelButtonText: 'Batal Kembali'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('alasanCancelInput').value = result.value || '';
+            Swal.fire({
+                title: 'Membatalkan Pendaftaran...',
+                text: 'Mohon tunggu...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            document.getElementById('formCancelQueue').submit();
+        }
+    });
 }
 </script>
 @endpush

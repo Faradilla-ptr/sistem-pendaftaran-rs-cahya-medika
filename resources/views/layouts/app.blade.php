@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -8,69 +8,92 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --sidebar-w: 230px;
-            --border: #e5e7eb;
-            --text-dark: #111827;
-            --text-mid: #374151;
-            --text-muted: #6b7280;
-            --text-light: #9ca3af;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-mid: #334155;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
             --success: #16a34a;
             --warning: #d97706;
             --danger: #dc2626;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+            --shadow-sm: 0 1px 3px rgba(15,23,42,0.05);
+            --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
             --radius: 10px;
             --radius-lg: 14px;
         }
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f4f6f9; color: var(--text-dark); display: flex; min-height: 100vh; font-size: 14px; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: var(--text-dark); display: flex; min-height: 100vh; font-size: 14px; }
 
         /* SIDEBAR */
-        .sidebar { width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; display: flex; flex-direction: column; overflow-y: auto; }
-        .sb-logo { padding: 16px 14px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
-        .sb-logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg,#1d4ed8,#0891b2); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
-        .sb-logo-text .name { font-size: 13px; font-weight: 700; color: var(--text-dark); line-height: 1.2; }
-        .sb-logo-text .sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
-        .sb-role-badge { margin: 10px 12px 6px; padding: 6px 11px; border-radius: 7px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-        .sb-role-badge.admin, .sb-role-badge.pendaftaran { background: #dbeafe; color: #1e40af; }
-        .sb-role-badge.rekam_medis { background: #e0f2fe; color: #0369a1; }
-        .sb-role-badge.pasien { background: #d1fae5; color: #065f46; }
-        .sb-nav { flex: 1; padding: 4px 10px; }
-        .sb-section { margin-bottom: 4px; }
-        .sb-section-title { font-size: 9.5px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 1.2px; padding: 10px 8px 4px; }
-        .sb-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; color: var(--text-mid); text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.15s; margin-bottom: 1px; }
-        .sb-nav-item i { width: 15px; text-align: center; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
-        .sb-nav-item:hover { background: #f3f4f6; color: var(--text-dark); }
-        .sb-nav-item:hover i { color: var(--text-dark); }
-        .sb-nav-item.active { background: #1e293b; color: #fff; font-weight: 600; }
-        .sb-nav-item.active i { color: #fff; }
-        .sb-footer { padding: 10px; border-top: 1px solid var(--border); }
-        .sb-user { display: flex; align-items: center; gap: 8px; padding: 9px; border-radius: 9px; background: #f9fafb; border: 1px solid var(--border); }
-        .sb-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+        .sidebar { width: var(--sidebar-w); background: #ffffff; border-right: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 2px 0 10px rgba(15,23,42,0.02); }
+        .sb-logo { padding: 18px 16px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; }
+        .sb-logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #38bdf8; flex-shrink: 0; box-shadow: 0 4px 10px rgba(15,23,42,0.15); }
+        .sb-logo-text .name { font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.2; letter-spacing: -0.2px; }
+        .sb-logo-text .sub { font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 500; }
+        .sb-role-badge { margin: 12px 14px 6px; padding: 7px 12px; border-radius: 8px; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; gap: 7px; letter-spacing: 0.3px; }
+        .sb-role-badge.admin, .sb-role-badge.pendaftaran { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+        .sb-role-badge.rekam_medis { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+        .sb-role-badge.pasien { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+        .sb-nav { flex: 1; padding: 8px 12px; }
+        .sb-section { margin-bottom: 8px; }
+        .sb-section-title { font-size: 9.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.2px; padding: 12px 10px 6px; }
+        .sb-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; color: #475569; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.2s ease; margin-bottom: 2px; }
+        .sb-nav-item i { width: 18px; text-align: center; font-size: 13px; color: #64748b; flex-shrink: 0; transition: color 0.2s; }
+        .sb-nav-item:hover { background: #f8fafc; color: #0f172a; }
+        .sb-nav-item:hover i { color: #0891b2; }
+        .sb-nav-item.active { background: linear-gradient(135deg, #0c4a6e, #0891b2); color: #ffffff; font-weight: 700; box-shadow: 0 4px 12px rgba(8,145,178,0.25); }
+        .sb-nav-item.active i { color: #ffffff; }
+
+        /* MAIN & TOPBAR DROPDOWN */
+        .main-wrap { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f8fafc; }
+        .topbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(15,23,42,0.03); }
+        .topbar-title { font-size: 16px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; }
+        .topbar-right { display: flex; align-items: center; gap: 14px; }
+        .topbar-date { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; }
+        .topbar-date i { font-size: 11px; color: #0891b2; }
+        
+        /* USER DROPDOWN WRAPPER */
+        .user-dropdown-wrapper { position: relative; }
+        .user-dropdown-btn { display: flex; align-items: center; gap: 10px; background: #ffffff; padding: 5px 12px 5px 6px; border-radius: 12px; border: 1.5px solid #cbd5e1; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(15,23,42,0.04); }
+        .user-dropdown-btn:hover { border-color: #0891b2; background: #f0f9ff; }
+        .sb-avatar { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
         .sb-avatar.admin, .sb-avatar.pendaftaran { background: linear-gradient(135deg,#1d4ed8,#0891b2); }
         .sb-avatar.rekam_medis { background: linear-gradient(135deg,#0369a1,#06b6d4); }
         .sb-avatar.pasien { background: linear-gradient(135deg,#16a34a,#059669); }
-        .sb-user-info .uname { font-size: 12px; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-        .sb-user-info .uemail { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+        .u-info-top { line-height: 1.2; text-align: left; }
+        .u-info-top .uname { font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+        .u-info-top .uemail { font-size: 10px; color: #64748b; white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+        .u-arrow { font-size: 11px; color: #94a3b8; transition: transform 0.2s; margin-left: 2px; }
 
-        /* MAIN */
-        .main-wrap { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-        .topbar { background: white; border-bottom: 1px solid var(--border); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; position: sticky; top: 0; z-index: 100; }
-        .topbar-title { font-size: 15px; font-weight: 700; color: var(--text-dark); }
-        .topbar-right { display: flex; align-items: center; gap: 9px; }
-        .topbar-date { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); background: #f3f4f6; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--border); }
-        .topbar-date i { font-size: 11px; }
-        .btn-keluar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; font-family: inherit; transition: all 0.15s; }
-        .btn-keluar:hover { background: #dc2626; color: white; border-color: #dc2626; }
-        .page-wrap { padding: 22px; flex: 1; }
-        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .page-header-title { font-size: 19px; font-weight: 800; color: var(--text-dark); }
-        .page-header-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+        .user-dropdown-menu {
+            position: absolute; right: 0; top: calc(100% + 8px);
+            width: 230px; background: #ffffff; border: 1px solid #e2e8f0;
+            border-radius: 14px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+            padding: 8px; display: none; z-index: 500;
+        }
+        .user-dropdown-menu.show { display: block; animation: dropdownFade 0.2s ease; }
+        @keyframes dropdownFade { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .udd-header { padding: 10px 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 6px; }
+        .udd-name { font-size: 13px; font-weight: 800; color: #0f172a; }
+        .udd-email { font-size: 11px; color: #64748b; word-break: break-all; margin-top: 1px; }
+        .udd-divider { height: 1px; background: #f1f5f9; margin: 6px 0; }
+        .udd-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 600; width: 100%; border: none; background: none; text-align: left; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+        .udd-item i { width: 16px; font-size: 13px; color: #0891b2; }
+        .udd-item:hover { background: #f0f9ff; color: #0c4a6e; }
+        .udd-item.logout-item { color: #dc2626; }
+        .udd-item.logout-item i { color: #dc2626; }
+        .udd-item.logout-item:hover { background: #fee2e2; color: #991b1b; }
+
+        .page-wrap { padding: 24px; flex: 1; width: 100%; }
 
         /* CARDS */
         .card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
-        .card-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
         .card-title { font-size: 14px; font-weight: 700; color: var(--text-dark); }
         .card-body { padding: 18px; }
         .stat-card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 16px 18px; display: flex; align-items: center; gap: 13px; }
@@ -81,8 +104,8 @@
         /* TABLE */
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        thead th { background: #f9fafb; padding: 10px 13px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-        tbody td { padding: 11px 13px; border-bottom: 1px solid #f3f4f6; color: var(--text-dark); vertical-align: middle; }
+        thead th { background: #f8fafc; padding: 10px 13px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        tbody td { padding: 11px 13px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); vertical-align: middle; }
         tbody tr:last-child td { border-bottom: none; }
         tbody tr:hover td { background: #fafafa; }
 
@@ -104,17 +127,23 @@
         .btn-danger    { background: #dc2626; color: white; }
         .btn-danger:hover { background: #b91c1c; }
         .btn-outline   { background: white; color: var(--text-mid); border: 1px solid var(--border); }
-        .btn-outline:hover { background: #f9fafb; }
+        .btn-outline:hover { background: #f8fafc; }
         .btn-info      { background: #0891b2; color: white; }
         .btn-info:hover { background: #0e7490; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn-lg { padding: 11px 22px; font-size: 14px; }
 
-        /* FORMS */
+        /* PROMINENT ELEVATED FORMS */
         .form-group { margin-bottom: 14px; }
-        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 5px; }
-        .form-control, .form-select { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--text-dark); background: white; transition: border-color 0.15s; }
-        .form-control:focus, .form-select:focus { outline: none; border-color: #1d4ed8; box-shadow: 0 0 0 3px rgba(29,78,216,0.08); }
+        .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-mid); margin-bottom: 5px; }
+        .form-control, .form-select {
+            width: 100%; padding: 9px 13px;
+            border: 1.5px solid #cbd5e1; border-radius: 9px;
+            font-size: 13px; font-weight: 500; font-family: inherit;
+            color: var(--text-dark); background: #ffffff;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.04); transition: all 0.15s;
+        }
+        .form-control:focus, .form-select:focus { outline: none; border-color: #1d4ed8; box-shadow: 0 0 0 3.5px rgba(29,78,216,0.12); background: #fafcfe; }
         .form-control.is-invalid { border-color: var(--danger); }
         .invalid-feedback { color: var(--danger); font-size: 11px; margin-top: 3px; }
         textarea.form-control { resize: vertical; min-height: 80px; }
@@ -132,21 +161,6 @@
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
 
-        /* UTILS */
-        .d-flex { display: flex; } .align-center { align-items: center; } .justify-between { justify-content: space-between; }
-        .gap-2 { gap: 8px; } .gap-3 { gap: 12px; }
-        .mb-2 { margin-bottom: 8px; } .mb-4 { margin-bottom: 16px; } .mb-6 { margin-bottom: 24px; }
-        .text-muted { color: var(--text-muted); } .text-sm { font-size: 12px; } .text-xs { font-size: 11px; }
-        .fw-bold { font-weight: 700; } .text-center { text-align: center; } .text-right { text-align: right; }
-
-        .ss-badge { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600; }
-        .ss-badge.success { background:#d1fae5;color:#065f46; }
-        .ss-badge.pending { background:#fef3c7;color:#92400e; }
-        .ss-badge.failed  { background:#fee2e2;color:#991b1b; }
-        .pagination { display:flex;gap:4px;flex-wrap:wrap; }
-        .page-item .page-link { padding:6px 11px;border-radius:7px;font-size:13px;color:var(--text-mid);background:white;border:1px solid var(--border);text-decoration:none; }
-        .page-item.active .page-link { background:#1e293b;color:white;border-color:#1e293b; }
-
         @media (max-width:768px) { .sidebar { transform:translateX(-100%); } .main-wrap { margin-left:0; } .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; } .page-wrap { padding:14px; } }
     </style>
     @stack('styles')
@@ -155,7 +169,9 @@
 @php $role = auth()->user()->role ?? 'pasien'; @endphp
 <aside class="sidebar">
     <div class="sb-logo">
-        <div class="sb-logo-icon">🏥</div>
+        <div class="sb-logo-icon">
+            <i class="fas fa-hospital"></i>
+        </div>
         <div class="sb-logo-text">
             <div class="name">RS Cahya Medika</div>
             <div class="sub">Sistem Pendaftaran RM</div>
@@ -225,16 +241,8 @@
         </div>
         @endif
     </nav>
-    <div class="sb-footer">
-        <div class="sb-user">
-            <div class="sb-avatar {{ $role }}">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</div>
-            <div class="sb-user-info">
-                <div class="uname">{{ Str::limit(auth()->user()->name, 22) }}</div>
-                <div class="uemail">{{ Str::limit(auth()->user()->email, 26) }}</div>
-            </div>
-        </div>
-    </div>
 </aside>
+
 <div class="main-wrap">
     <header class="topbar">
         <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
@@ -243,41 +251,113 @@
                 <i class="fas fa-calendar-days"></i>
                 {{ now()->locale('id')->isoFormat('ddd, D MMM Y') }}
             </div>
-            <form action="{{ route('logout') }}" method="POST" style="display:inline">
-                @csrf
-                <button type="submit" class="btn-keluar">
-                    <i class="fas fa-right-from-bracket"></i> Keluar
+            
+            {{-- USER DROPDOWN MENU AT TOPBAR --}}
+            <div class="user-dropdown-wrapper">
+                <button type="button" class="user-dropdown-btn" onclick="toggleUserDropdown(event)">
+                    <div class="sb-avatar {{ $role }}">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</div>
+                    <div class="u-info-top">
+                        <div class="uname">{{ auth()->user()->name }}</div>
+                        <div class="uemail">{{ auth()->user()->email }}</div>
+                    </div>
+                    <i class="fas fa-chevron-down u-arrow" id="uDropdownArrow"></i>
                 </button>
-            </form>
+                
+                <div class="user-dropdown-menu" id="userDropdownMenu">
+                    <div class="udd-header">
+                        <div class="udd-name">{{ auth()->user()->name }}</div>
+                        <div class="udd-email">{{ auth()->user()->email }}</div>
+                    </div>
+                    <div class="udd-divider"></div>
+                    @if(!auth()->user()->isAdmin())
+                    <a href="{{ route('pasien.profil') }}" class="udd-item">
+                        <i class="fas fa-user-gear"></i> Profil & Identitas
+                    </a>
+                    <div class="udd-divider"></div>
+                    @endif
+                    <form id="logoutForm" action="{{ route('logout') }}" method="POST" style="display:none">
+                        @csrf
+                    </form>
+                    <button type="button" class="udd-item logout-item" onclick="confirmLogout(event)">
+                        <i class="fas fa-right-from-bracket"></i> Keluar / Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
+
     <main class="page-wrap">
-        @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fas fa-circle-check" style="margin-top:1px;flex-shrink:0"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-        @endif
-        @if(session('error'))
-        <div class="alert alert-danger">
-            <i class="fas fa-circle-exclamation" style="margin-top:1px;flex-shrink:0"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-        @endif
-        @if($errors->any())
-        <div class="alert alert-danger">
-            <i class="fas fa-triangle-exclamation" style="margin-top:1px;flex-shrink:0"></i>
-            <div>
-                <strong>Terjadi kesalahan:</strong>
-                <ul style="margin:4px 0 0 14px">
-                    @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
-                </ul>
-            </div>
+        @if(session('info'))
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle" style="margin-top:1px;flex-shrink:0"></i>
+            <span>{{ session('info') }}</span>
         </div>
         @endif
         @yield('content')
     </main>
 </div>
+
+<script>
+function toggleUserDropdown(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('userDropdownMenu');
+    const arrow = document.getElementById('uDropdownArrow');
+    const isShowing = menu.classList.contains('show');
+    
+    if (isShowing) {
+        menu.classList.remove('show');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    } else {
+        menu.classList.add('show');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const wrapper = document.querySelector('.user-dropdown-wrapper');
+    const menu = document.getElementById('userDropdownMenu');
+    const arrow = document.getElementById('uDropdownArrow');
+    if (wrapper && !wrapper.contains(e.target) && menu && menu.classList.contains('show')) {
+        menu.classList.remove('show');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+});
+
+function confirmLogout(e) {
+    e.preventDefault();
+    Swal.fire({
+        title: 'Konfirmasi Keluar',
+        text: "Apakah Anda yakin ingin keluar dari akun ini?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmColor: '#dc2626',
+        cancelColor: '#64748b',
+        confirmButtonText: 'Ya, Keluar',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('logoutForm').submit();
+        }
+    });
+}
+@if(session('success'))
+Swal.fire({
+    icon: 'success',
+    title: 'Berhasil!',
+    text: "{{ session('success') }}",
+    confirmColor: '#1d4ed8',
+    timer: 3000
+});
+@endif
+@if(session('error'))
+Swal.fire({
+    icon: 'error',
+    title: 'Gagal!',
+    text: "{{ session('error') }}",
+    confirmColor: '#dc2626'
+});
+@endif
+</script>
 @stack('scripts')
 </body>
 </html>

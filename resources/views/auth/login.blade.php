@@ -1,150 +1,176 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - RS Cahya Medika Bondowoso</title>
+    <title>Login Pasien — RS Cahya Medika Bondowoso</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:#f4f6f9}
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh;
+            display:flex; align-items:center; justify-content:center;
+            background: radial-gradient(circle at 10% 20%, rgba(2, 132, 199, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(13, 148, 136, 0.05) 0%, transparent 40%),
+                        #f8fafc;
+            color:#0f172a; padding:24px; position:relative;
+        }
 
-        /* LEFT */
-        .left{background:linear-gradient(160deg,#1e293b 0%,#1d4ed8 60%,#0891b2 100%);position:relative;display:flex;flex-direction:column;justify-content:center;padding:60px;overflow:hidden}
-        .left::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:26px 26px}
-        .left-blob{position:absolute;bottom:-80px;right:-80px;width:360px;height:360px;background:radial-gradient(circle,rgba(8,145,178,0.2) 0%,transparent 70%);border-radius:50%}
-        .left-content{position:relative;z-index:1}
-        .left-logo{display:flex;align-items:center;gap:12px;margin-bottom:56px}
-        .logo-icon{width:42px;height:42px;background:#1d4ed8;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;border:2px solid rgba(255,255,255,0.2)}
-        .logo-text .name{color:white;font-size:15px;font-weight:700}
-        .logo-text .sub{color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px}
-        .left h2{font-size:38px;line-height:1.2;color:white;margin-bottom:14px;font-weight:800}
-        .left h2 span{color:#67e8f9}
-        .left p{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:36px}
-        .ss-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(8,145,178,0.2);border:1px solid rgba(8,145,178,0.35);color:#a5f3fc;padding:9px 16px;border-radius:10px;font-size:12px;font-weight:600}
+        /* BACK BUTTON ON TOP-LEFT FOR PASIEN */
+        .btn-back {
+            position:absolute; top:24px; left:24px;
+            display:inline-flex; align-items:center; gap:8px;
+            padding:9px 18px; border-radius:99px;
+            background:white; border:1px solid #e2e8f0;
+            color:#334155; font-size:13px; font-weight:700;
+            text-decoration:none; box-shadow:0 2px 6px rgba(15,23,42,0.04);
+            transition:all 0.2s; z-index:10;
+        }
+        .btn-back:hover { background:#f1f5f9; color:#0f172a; border-color:#cbd5e1; transform:translateX(-2px); }
 
-        /* RIGHT */
-        .right{display:flex;align-items:center;justify-content:center;padding:40px}
-        .form-box{width:100%;max-width:390px}
-        .form-header{margin-bottom:32px}
-        .form-header h1{font-size:24px;font-weight:800;color:#111827;margin-bottom:5px}
-        .form-header p{font-size:13px;color:#6b7280}
+        /* CENTER CARD CONTAINER */
+        .card-container {
+            width:100%; max-width:420px;
+            background:white; border:1px solid #e2e8f0;
+            border-radius:24px; padding:36px 32px;
+            box-shadow:0 20px 40px -15px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(2, 132, 199, 0.04);
+            position:relative;
+        }
+        .card-container::before {
+            content:''; position:absolute; top:0; left:32px; right:32px; height:4px;
+            background:linear-gradient(90deg, #059669, #0284c7);
+            border-radius:4px 4px 0 0;
+        }
 
-        .alert-error{background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:12px 14px;color:#991b1b;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-        .alert-success{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:12px 14px;color:#166534;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+        .header-brand { text-align:center; margin-bottom:28px; }
+        .logo-box {
+            width:48px; height:48px; border-radius:14px;
+            background:linear-gradient(135deg, #059669, #0284c7);
+            color:white; font-size:20px; display:flex; align-items:center; justify-content:center;
+            margin:0 auto 12px; box-shadow:0 6px 16px rgba(2, 132, 199, 0.25);
+        }
+        .brand-title { font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; }
+        .brand-sub { font-size:12px; color:#64748b; margin-top:2px; font-weight:500; }
 
-        .fg{margin-bottom:18px}
-        .fg label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
-        .input-wrap{position:relative}
-        .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:13px}
-        .fg input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;font-family:inherit;color:#111827;background:white;transition:border-color 0.15s}
-        .fg input:focus{outline:none;border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,0.08)}
-        .fg input.is-invalid{border-color:#dc2626}
-        .invalid-msg{color:#dc2626;font-size:11px;margin-top:3px}
-        .pwd-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9ca3af;cursor:pointer;font-size:13px;border:none;background:none;padding:4px}
-        .pwd-eye:hover{color:#1d4ed8}
+        .form-title { font-size:22px; font-weight:800; color:#0f172a; text-align:center; margin-bottom:4px; }
+        .form-sub { font-size:13px; color:#64748b; text-align:center; margin-bottom:24px; }
 
-        .remember-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-        .remember-label{display:flex;align-items:center;gap:7px;font-size:13px;color:#374151;cursor:pointer}
+        .alert-error { background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px; color:#991b1b; font-size:12.5px; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+        .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; color:#166534; font-size:12.5px; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
 
-        .btn-submit{width:100%;padding:12px;background:linear-gradient(135deg,#1e293b,#1d4ed8);color:white;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:9px}
-        .btn-submit:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 6px 20px rgba(29,78,216,0.25)}
+        .fg { margin-bottom:18px; }
+        .fg label { display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px; }
+        .input-wrap { position:relative; }
+        .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13.5px; }
+        .fg input {
+            width:100%; padding:11px 14px 11px 40px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:13px; font-family:inherit; color:#0f172a; background:white; transition:all 0.15s;
+        }
+        .fg input:focus { outline:none; border-color:#0284c7; box-shadow:0 0 0 3.5px rgba(2, 132, 199, 0.1); }
+        .fg input.is-invalid { border-color:#dc2626; }
+        .pwd-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#94a3b8; cursor:pointer; font-size:13px; border:none; background:none; padding:4px; }
+        .pwd-eye:hover { color:#0284c7; }
 
-        .divider{display:flex;align-items:center;gap:10px;margin:22px 0;color:#9ca3af;font-size:12px}
-        .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e5e7eb}
+        .btn-submit {
+            width:100%; padding:12px; background:linear-gradient(135deg, #059669 0%, #0284c7 100%); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(2, 132, 199, 0.25); display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px;
+        }
+        .btn-submit:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 20px rgba(2, 132, 199, 0.35); }
 
-        .demo-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:13px 14px;font-size:12px;color:#1e40af}
-        .demo-box strong{display:block;margin-bottom:6px;font-size:12px}
-        code{background:white;padding:2px 6px;border-radius:4px;font-size:11px;border:1px solid #dbeafe}
+        /* DEMO ACCOUNT CARD BUTTON */
+        .demo-card-btn {
+            width:100%; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px;
+            padding:12px 14px; margin-top:22px; cursor:pointer; text-align:left;
+            transition:all 0.2s; font-family:inherit; display:block;
+        }
+        .demo-card-btn:hover { background:#dcfce7; border-color:#86efac; transform:translateY(-1px); box-shadow:0 4px 12px rgba(22,163,74,0.12); }
 
-        .form-footer{text-align:center;margin-top:22px;font-size:13px;color:#6b7280}
-        .form-footer a{color:#1d4ed8;font-weight:600;text-decoration:none}
-        .back-link{display:block;text-align:center;margin-top:14px;font-size:12px;color:#9ca3af;text-decoration:none}
-        .back-link:hover{color:#374151}
+        .form-footer { text-align:center; margin-top:22px; font-size:13px; color:#64748b; }
+        .form-footer a { color:#0284c7; font-weight:700; text-decoration:none; }
+        .form-footer a:hover { text-decoration:underline; }
 
-        @media(max-width:768px){body{grid-template-columns:1fr}.left{display:none}}
+        @media(max-width:480px) { .card-container { padding:28px 20px; } .btn-back { top:16px; left:16px; } }
     </style>
 </head>
 <body>
-    <div class="left">
-        <div class="left-blob"></div>
-        <div class="left-content">
-            <div class="left-logo">
-                <div class="logo-icon">🏥</div>
-                <div class="logo-text">
-                    <div class="name">RS Cahya Medika</div>
-                    <div class="sub">Bondowoso · Rumah Sakit Swasta</div>
+
+    <!-- TOP-LEFT BACK BUTTON TO HOME FOR PASIEN -->
+    <a href="{{ route('home') }}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Beranda
+    </a>
+
+    <div class="card-container">
+        <div class="header-brand">
+            <div class="logo-box">
+                <i class="fas fa-hospital"></i>
+            </div>
+            <div class="brand-title">RS Cahya Medika</div>
+            <div class="brand-sub">Portal Akses Pasien</div>
+        </div>
+
+        <div class="form-title">Login Pasien</div>
+        <div class="form-sub">Masukkan email dan password akun pasien Anda</div>
+
+        @if($errors->any())
+        <div class="alert-error"><i class="fas fa-circle-exclamation"></i><span>{{ $errors->first() }}</span></div>
+        @endif
+
+        @if(session('success'))
+        <div class="alert-success"><i class="fas fa-circle-check"></i>{{ session('success') }}</div>
+        @endif
+
+        <form action="{{ route('login.post') }}" method="POST">
+            @csrf
+            <div class="fg">
+                <label>Email Pasien</label>
+                <div class="input-wrap">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" name="email" id="emailInput" class="{{ $errors->has('email')?'is-invalid':'' }}" placeholder="email@pasien.com" value="{{ old('email') }}" required>
                 </div>
             </div>
-            <h2>Selamat Datang<br>di Portal <span>Pasien</span></h2>
-            <p>Akses layanan pendaftaran online, riwayat kunjungan, dan informasi kesehatan Anda dengan mudah dan aman.</p>
-            <div class="ss-badge">
-                <i class="fas fa-shield-check"></i>
-                Data terintegrasi dengan SatuSehat Kemenkes RI
+
+            <div class="fg">
+                <label>Password</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" name="password" id="pwdInput" class="{{ $errors->has('password')?'is-invalid':'' }}" placeholder="••••••••" required style="padding-right:40px">
+                    <button type="button" class="pwd-eye" onclick="togglePwd('pwdInput','pwdIcon')"><i class="fas fa-eye" id="pwdIcon"></i></button>
+                </div>
             </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-right-to-bracket"></i> Masuk Akun Pasien
+            </button>
+        </form>
+
+        {{-- CLICKABLE DEMO ACCOUNT CARD BUTTON --}}
+        <button type="button" class="demo-card-btn" onclick="fillDemo('pasien@demo.com', 'pasien123')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="font-weight:700;font-size:12px;color:#166534">
+                    <i class="fas fa-key" style="color:#16a34a;margin-right:6px"></i> Akun Demo Pasien
+                </div>
+                <span style="font-size:10px;color:#15803d;font-weight:700;background:white;padding:2px 8px;border-radius:6px;border:1px solid #bbf7d0">Klik untuk autofill &rarr;</span>
+            </div>
+            <div style="font-size:11.5px;color:#166534;margin-top:5px;font-family:monospace">
+                Email: pasien@demo.com | Pass: pasien123
+            </div>
+        </button>
+
+        <div class="form-footer">
+            Belum punya akun pasien? <a href="{{ route('register') }}">Daftar Pasien Baru &rarr;</a>
         </div>
     </div>
 
-    <div class="right">
-        <div class="form-box">
-            <div class="form-header">
-                <h1>Masuk ke Akun</h1>
-                <p>Masukkan email dan password Anda untuk melanjutkan</p>
-            </div>
-
-            @if($errors->any())
-            <div class="alert-error"><i class="fas fa-circle-exclamation"></i><span>{{ $errors->first() }}</span></div>
-            @endif
-
-            @if(session('success'))
-            <div class="alert-success"><i class="fas fa-circle-check"></i>{{ session('success') }}</div>
-            @endif
-
-            <form action="{{ route('login.post') }}" method="POST">
-                @csrf
-                <div class="fg">
-                    <label>Email</label>
-                    <div class="input-wrap">
-                        <i class="fas fa-envelope input-icon"></i>
-                        <input type="email" name="email" class="{{ $errors->has('email')?'is-invalid':'' }}" placeholder="email@example.com" value="{{ old('email') }}" required>
-                    </div>
-                    @error('email')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-                <div class="fg">
-                    <label>Password</label>
-                    <div class="input-wrap">
-                        <i class="fas fa-lock input-icon"></i>
-                        <input type="password" name="password" id="loginPwd" class="{{ $errors->has('password')?'is-invalid':'' }}" placeholder="••••••••" required style="padding-right:40px">
-                        <button type="button" class="pwd-eye" onclick="togglePwd('loginPwd','loginPwdIcon')"><i class="fas fa-eye" id="loginPwdIcon"></i></button>
-                    </div>
-                    @error('password')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-                <div class="remember-row">
-                    <label class="remember-label"><input type="checkbox" name="remember"> Ingat Saya</label>
-                </div>
-                <button type="submit" class="btn-submit"><i class="fas fa-right-to-bracket"></i> Masuk Sekarang</button>
-            </form>
-
-            <div class="divider">atau</div>
-
-            <div class="demo-box">
-                <strong>🔑 Akun Demo:</strong>
-                <div style="margin-bottom:4px"><strong>Staff Loket:</strong> pendaftaran@rscahyamedika.co.id | <code>admin123</code></div>
-                <div><strong>Pasien:</strong> pasien@demo.com | <code>pasien123</code></div>
-            </div>
-
-            <div class="form-footer">Belum punya akun? <a href="{{ route('register') }}">Daftar Sekarang →</a></div>
-            <a href="{{ route('home') }}" class="back-link">← Kembali ke Beranda</a>
-        </div>
-    </div>
 <script>
 function togglePwd(id, iconId){
     var inp=document.getElementById(id);
     var ic=document.getElementById(iconId);
     if(inp.type==='password'){inp.type='text';ic.className='fas fa-eye-slash';}
     else{inp.type='password';ic.className='fas fa-eye';}
+}
+function fillDemo(email, pwd){
+    document.getElementById('emailInput').value = email;
+    document.getElementById('pwdInput').value = pwd;
 }
 </script>
 </body>

@@ -5,6 +5,7 @@ use App\Http\Controllers\PasienController;
 use App\Http\Controllers\PendaftaranController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,21 +19,53 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// General /dashboard route redirector
+Route::get('/dashboard', function () {
+    if (!Auth::check()) {
+        return redirect()->route('login');
+    }
+    /** @var User $user */
+    $user = Auth::user();
+    return $user->isAdmin()
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('pasien.dashboard');
+})->name('dashboard');
+
+// General /admin shortcut redirector
+Route::get('/admin', function () {
+    if (!Auth::check()) {
+        return redirect()->route('admin.login');
+    }
+    /** @var User $user */
+    $user = Auth::user();
+    return $user->isAdmin()
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('pasien.dashboard');
+});
+
 // ==================== AUTH ====================
 Route::middleware('guest')->group(function () {
+    // 1. Pasien Login
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/daftar', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/daftar', [AuthController::class, 'register'])->name('register.post');
 
+    // 2. Pendaftaran & Loket Login
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
     Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::get('/pendaftaran/login', [AuthController::class, 'showAdminLogin'])->name('pendaftaran.login');
+    Route::post('/pendaftaran/login', [AuthController::class, 'login'])->name('pendaftaran.login.post');
+
+    // 3. Rekam Medis Login
+    Route::get('/rekam-medis/login', [AuthController::class, 'showRekamMedisLogin'])->name('rekam_medis.login');
+    Route::post('/rekam-medis/login', [AuthController::class, 'login'])->name('rekam_medis.login.post');
 });
 
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 Route::match(['get', 'post'], '/admin/logout', [AuthController::class, 'logout'])->name('admin.logout')->middleware('auth');
 
-// ==================== PASIEN ====================
+// ==================== PASIEN ROUTES ====================
 Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->name('pasien.')->group(function () {
     Route::get('/dashboard', [PasienController::class, 'dashboard'])->name('dashboard');
     Route::get('/profil', [PasienController::class, 'profil'])->name('profil');
@@ -52,8 +85,8 @@ Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->name('pasien.')->g
     Route::get('/api/jadwal-dokter', [PendaftaranController::class, 'getJadwalDokter'])->name('api.jadwal');
 });
 
-// ==================== ADMIN ====================
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+// ==================== ADMIN & STAF (PENDAFTARAN & REKAM MEDIS) ROUTES ====================
+Route::middleware(['auth', 'role:admin,pendaftaran,rekam_medis'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Pasien

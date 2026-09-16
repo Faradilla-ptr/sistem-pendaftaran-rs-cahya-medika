@@ -28,6 +28,14 @@ class AuthController extends Controller
         return view('auth.admin_login');
     }
 
+    public function showRekamMedisLogin()
+    {
+        if (Auth::check()) {
+            return $this->redirectByRole();
+        }
+        return view('auth.rekam_medis_login');
+    }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [

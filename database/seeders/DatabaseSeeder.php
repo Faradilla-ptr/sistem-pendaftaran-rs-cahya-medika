@@ -22,6 +22,24 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
+        // ====== STAF PENDAFTARAN ======
+        User::create([
+            'name' => 'Staf Loket Pendaftaran',
+            'email' => 'pendaftaran@rscahyamedika.co.id',
+            'password' => Hash::make('admin123'),
+            'role' => 'pendaftaran',
+            'is_active' => true,
+        ]);
+
+        // ====== STAF REKAM MEDIS ======
+        User::create([
+            'name' => 'Staf Rekam Medis',
+            'email' => 'rekammedis@rscahyamedika.co.id',
+            'password' => Hash::make('admin123'),
+            'role' => 'rekam_medis',
+            'is_active' => true,
+        ]);
+
         // ====== POLI ======
         $polis = [
             ['kode' => 'UMUM', 'nama' => 'Poli Umum', 'deskripsi' => 'Pelayanan kesehatan umum', 'lantai' => 'Lantai 1', 'icon' => '🏥', 'warna' => '#0891b2'],

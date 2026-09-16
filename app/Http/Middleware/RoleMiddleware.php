@@ -24,10 +24,16 @@ class RoleMiddleware
             return $next($request);
         }
 
+        // Allow if user's exact role is allowed, or if 'admin' role is requested and user is an admin-type role (admin, pendaftaran, rekam_medis)
         if (in_array($user->role, $roles) || (in_array('admin', $roles) && $user->isAdmin())) {
             return $next($request);
         }
 
-        abort(403, 'Akses tidak diizinkan.');
+        // Instead of throwing a 403 error page, smoothly redirect user to their authorized dashboard
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('info', 'Anda dialihkan ke Dashboard Admin / Loket.');
+        }
+
+        return redirect()->route('pasien.dashboard')->with('info', 'Anda dialihkan ke Dashboard Pasien.');
     }
 }

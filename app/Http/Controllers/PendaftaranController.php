@@ -223,7 +223,7 @@ class PendaftaranController extends Controller
         $pasien = $user->pasien;
 
         if ($pendaftaran->pasien_id !== $pasien->id) {
-            abort(403, 'Akses ditolak.');
+            return redirect()->route('pasien.pendaftaran.index')->with('error', 'Pendaftaran tidak ditemukan atau bukan milik Anda.');
         }
 
         $pendaftaran->load(['poli', 'dokter', 'pasien']);
@@ -238,7 +238,7 @@ class PendaftaranController extends Controller
         $pasien = $user->pasien;
 
         if ($pendaftaran->pasien_id !== $pasien->id) {
-            abort(403);
+            return redirect()->route('pasien.pendaftaran.index')->with('error', 'Pendaftaran tidak ditemukan atau bukan milik Anda.');
         }
 
         if (!in_array($pendaftaran->status, ['menunggu'])) {

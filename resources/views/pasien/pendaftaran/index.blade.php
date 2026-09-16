@@ -36,7 +36,7 @@
                 </div>
                 <div style="font-size:12px;color:#94a3b8;margin-top:2px">
                     ⏰ {{ $p->jam_kunjungan }} WIB &nbsp;·&nbsp;
-                    🎟️ Antrian #{{ $p->no_antrian }} &nbsp;·&nbsp;
+                    🎟️ Antrian {{ $p->no_antrian }} &nbsp;·&nbsp;
                     {{ $p->jenis_kunjungan === 'baru' ? '🆕 Pasien Baru' : '🔄 Kontrol' }}
                 </div>
             </div>
