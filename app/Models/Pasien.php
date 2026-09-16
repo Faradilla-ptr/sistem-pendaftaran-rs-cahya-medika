@@ -39,11 +39,24 @@ class Pasien extends Model
         'provinsi',
         'kode_provinsi',
         'kode_pos',
-        // Kontak Darurat
+        // Kontak Darurat / Penanggung Jawab
         'nama_pj',
         'hubungan_pj',
         'no_hp_pj',
         'alamat_pj',
+        'jenis_kelamin_pj',
+        'pekerjaan_pj',
+        'kelurahan_pj',
+        'kecamatan_pj',
+        'kabupaten_pj',
+        'provinsi_pj',
+        // Tambahan Form Identitas Pasien
+        'warga_negara',
+        'suku',
+        'nama_ibu',
+        'nama_ayah',
+        'riwayat_alergi',
+        'jenis_alergi',
         // SatuSehat
         'satusehat_id',
         'satusehat_ihs_number',

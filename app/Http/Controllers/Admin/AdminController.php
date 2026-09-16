@@ -190,6 +190,23 @@ class AdminController extends Controller
         return view('admin.pendaftaran.show', compact('pendaftaran'));
     }
 
+    public function pendaftaranCetakPdf(Pendaftaran $pendaftaran)
+    {
+        $pendaftaran->load(['pasien', 'dokter', 'poli']);
+        $pasien = $pendaftaran->pasien;
+
+        if (!$pasien) {
+            return back()->withErrors(['error' => 'Data pasien tidak ditemukan.']);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.formulir_identitas_pasien', [
+            'pasien' => $pasien,
+            'pendaftaran' => $pendaftaran,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("Formulir_Identitas_Pasien_{$pasien->no_rm}.pdf");
+    }
+
     public function pendaftaranUpdateStatus(Request $request, Pendaftaran $pendaftaran)
     {
         $validator = Validator::make($request->all(), [

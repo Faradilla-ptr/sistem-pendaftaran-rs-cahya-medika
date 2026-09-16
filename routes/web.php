@@ -98,6 +98,7 @@ Route::middleware(['auth', 'role:admin,pendaftaran,rekam_medis'])->prefix('admin
     // Pendaftaran
     Route::get('/pendaftaran', [AdminController::class, 'pendaftaranIndex'])->name('pendaftaran.index');
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
+    Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::patch('/pendaftaran/{pendaftaran}/status', [AdminController::class, 'pendaftaranUpdateStatus'])->name('pendaftaran.status');
     Route::post('/pendaftaran/{pendaftaran}/vital', [AdminController::class, 'pendaftaranUpdateVital'])->name('pendaftaran.vital');
 

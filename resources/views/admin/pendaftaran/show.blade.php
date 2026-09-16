@@ -46,21 +46,29 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">👤 Data Pasien</div>
-                <a href="{{ route('admin.pasien.show', $pendaftaran->pasien->id) }}" class="btn btn-outline btn-sm">Lihat Profil</a>
+                <div style="display:flex;gap:6px">
+                    <a href="{{ route('admin.pendaftaran.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">
+                        <i class="fas fa-file-pdf"></i> Cetak Form PDF
+                    </a>
+                    <a href="{{ route('admin.pasien.edit', $pendaftaran->pasien->id) }}" class="btn btn-outline btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <div style="display:grid;gap:10px">
                     @foreach([
                         ['No. RM', $pendaftaran->pasien->no_rm ?? '-'],
                         ['Nama Lengkap', $pendaftaran->pasien->nama_lengkap ?? '-'],
-                        ['NIK', $pendaftaran->pasien->nik ?? '-'],
+                        ['NIK / KTP', $pendaftaran->pasien->nik ?? '-'],
                         ['Tanggal Lahir', optional($pendaftaran->pasien->tanggal_lahir)->format('d M Y') . ' (' . ($pendaftaran->pasien->umur ?? '?') . ' tahun)'],
                         ['Jenis Kelamin', $pendaftaran->pasien->jenis_kelamin_label ?? '-'],
                         ['No. HP', $pendaftaran->pasien->no_hp ?? '-'],
                         ['Alamat', Str::limit($pendaftaran->pasien->alamat ?? '-', 60)],
+                        ['Penanggung Jawab', $pendaftaran->pasien->nama_pj ?? '-'],
                     ] as [$label, $val])
                     <div style="display:flex;gap:10px">
-                        <div style="font-size:11px;font-weight:700;color:#94a3b8;width:110px;flex-shrink:0;padding-top:1px">{{ $label }}</div>
+                        <div style="font-size:11px;font-weight:700;color:#94a3b8;width:120px;flex-shrink:0;padding-top:1px">{{ $label }}</div>
                         <div style="font-size:13px;color:#1e293b;font-weight:500">{{ $val }}</div>
                     </div>
                     @endforeach
