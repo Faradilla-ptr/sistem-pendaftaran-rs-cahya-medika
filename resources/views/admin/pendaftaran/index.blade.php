@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Manajemen Pendaftaran - RS Cahya Medika')
 @section('page-title', 'Manajemen Antrean & Pendaftaran')
 
@@ -99,9 +99,9 @@
                     <th>Pasien</th>
                     <th>Poli / Dokter</th>
                     <th>Tanggal &amp; Jam</th>
-                    <th>Jenis</th>
-                    <th>Status</th>
-                    <th style="width:80px">Aksi</th>
+                    <th>Status Antrean</th>
+                    <th>SatuSehat</th>
+                    <th style="width:160px">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -115,24 +115,19 @@
                     </td>
                     <td>
                         <div style="font-weight:600;font-size:13px">{{ $p->pasien->nama_lengkap ?? '-' }}</div>
-                        <div style="font-size:11px;color:#9ca3af">No. RM {{ $p->pasien->no_rm ?? '-' }}</div>
+                        <div style="font-size:11px;color:#0891b2;font-weight:600">No. RM: {{ $p->pasien->no_rm ?? '-' }}</div>
                     </td>
                     <td>
                         <div style="font-weight:500;font-size:13px">{{ $p->poli->nama ?? '-' }}</div>
-                        <div style="font-size:11px;color:#9ca3af">{{ $p->dokter->nama ?? '-' }}</div>
+                        <div style="font-size:11px;color:#9ca3af">{{ $p->dokter->nama_lengkap ?? '-' }}</div>
                     </td>
                     <td>
                         <div style="font-size:13px">{{ \Carbon\Carbon::parse($p->tanggal_kunjungan)->format('d/m/Y') }}</div>
                         <div style="font-size:11px;color:#9ca3af">{{ $p->jam_kunjungan }} WIB</div>
                     </td>
                     <td>
-                        <span class="badge badge-{{ $p->jenis_kunjungan === 'baru' ? 'primary' : 'secondary' }}">
-                            {{ $p->jenis_kunjungan === 'baru' ? 'Baru' : 'Kontrol' }}
-                        </span>
-                    </td>
-                    <td>
                         <div style="display:flex;align-items:center;gap:6px">
-                            <select class="form-select" style="padding:4px 8px;font-size:11px;width:110px"
+                            <select class="form-select" style="padding:4px 8px;font-size:11px;width:105px"
                                 onchange="updateStatus({{ $p->id }}, this.value)">
                                 <option value="menunggu" {{ $p->status==='menunggu'?'selected':'' }}>Menunggu</option>
                                 <option value="dipanggil" {{ $p->status==='dipanggil'?'selected':'' }}>Dipanggil</option>
@@ -142,9 +137,28 @@
                         </div>
                     </td>
                     <td>
-                        <a href="{{ route('admin.pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm">
-                            <i class="fas fa-eye"></i> Detail
-                        </a>
+                        @if($p->satusehat_status === 'success')
+                            <span class="badge badge-success" style="font-size:10px;padding:3px 8px"><i class="fas fa-check-circle"></i> Terkirim 100%</span>
+                        @elseif($p->satusehat_status === 'failed')
+                            <span class="badge badge-danger" style="font-size:10px;padding:3px 8px"><i class="fas fa-exclamation-triangle"></i> Gagal</span>
+                        @else
+                            <span class="badge badge-warning" style="font-size:10px;padding:3px 8px"><i class="fas fa-clock"></i> Pending</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:4px;flex-wrap:nowrap">
+                            <a href="{{ route('admin.pendaftaran.pdf', $p->id) }}" target="_blank" class="btn btn-outline btn-sm" title="Cetak Formulir Identitas Pasien (PDF)" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2;padding:4px 8px;font-size:11px">
+                                <i class="fas fa-file-pdf"></i> Form
+                            </a>
+                            <a href="{{ route('admin.pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:11px">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if($p->pasien)
+                            <a href="{{ route('admin.pasien.edit', $p->pasien->id) }}" class="btn btn-outline btn-sm" title="Edit Pasien / No. RM" style="padding:4px 8px;font-size:11px">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @empty
