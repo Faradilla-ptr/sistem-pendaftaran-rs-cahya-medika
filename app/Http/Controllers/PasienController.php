@@ -45,7 +45,15 @@ class PasienController extends Controller
             ->limit(5)
             ->get();
 
-        return view('pasien.dashboard', compact('pasien', 'pendaftaran_aktif', 'riwayat'));
+        $riwayat_terakhir = $riwayat;
+
+        $stats = [
+            'total_pendaftaran' => Pendaftaran::where('pasien_id', $pasien->id)->count(),
+            'menunggu'          => Pendaftaran::where('pasien_id', $pasien->id)->whereIn('status', ['menunggu', 'dipanggil'])->count(),
+            'selesai'           => Pendaftaran::where('pasien_id', $pasien->id)->where('status', 'selesai')->count(),
+        ];
+
+        return view('pasien.dashboard', compact('pasien', 'pendaftaran_aktif', 'riwayat', 'riwayat_terakhir', 'stats'));
     }
 
     public function profil()

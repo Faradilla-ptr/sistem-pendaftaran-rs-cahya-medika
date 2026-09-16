@@ -15,13 +15,6 @@ use Illuminate\Support\Facades\Route;
 
 // ==================== HOME ====================
 Route::get('/', function () {
-    if (auth()->check()) {
-        /** @var User $user */
-        $user = auth()->user();
-        return $user->isAdmin()
-            ? redirect()->route('admin.dashboard')
-            : redirect()->route('pasien.dashboard');
-    }
     return view('welcome');
 })->name('home');
 
@@ -31,9 +24,13 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/daftar', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/daftar', [AuthController::class, 'register'])->name('register.post');
+
+    Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
+    Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+Route::match(['get', 'post'], '/admin/logout', [AuthController::class, 'logout'])->name('admin.logout')->middleware('auth');
 
 // ==================== PASIEN ====================
 Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->name('pasien.')->group(function () {
