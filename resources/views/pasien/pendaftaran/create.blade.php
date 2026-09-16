@@ -4,83 +4,88 @@
 
 @push('styles')
 <style>
-.step-bar { display:flex; align-items:center; margin-bottom:32px; }
+.step-bar { display:flex; align-items:center; margin-bottom:32px; background:#ffffff; padding:16px 20px; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(15,23,42,0.03); }
 .step { display:flex; align-items:center; gap:10px; }
 .step-num {
-    width:34px; height:34px; border-radius:50%;
+    width:36px; height:36px; border-radius:10px;
     display:flex; align-items:center; justify-content:center;
-    font-size:13px; font-weight:700; flex-shrink:0;
-    transition: all 0.3s;
+    font-size:14px; font-weight:800; flex-shrink:0;
+    transition: all 0.3s ease;
 }
-.step-num.active { background:var(--accent); color:white; box-shadow:0 4px 12px rgba(6,182,212,0.4); }
-.step-num.done { background:var(--success); color:white; }
-.step-num.idle { background:var(--gray-100); color:var(--gray-400); }
-.step-label { font-size:12px; font-weight:600; }
-.step-label.active { color:var(--accent); }
-.step-label.done { color:var(--success); }
-.step-label.idle { color:var(--gray-400); }
-.step-line { flex:1; height:2px; background:var(--gray-200); margin:0 10px; }
-.step-line.done { background:var(--success); }
+.step-num.active { background: linear-gradient(135deg, #0c4a6e, #0891b2); color:white; box-shadow:0 4px 12px rgba(8,145,178,0.3); }
+.step-num.done { background:#10b981; color:white; }
+.step-num.idle { background:#f1f5f9; color:#94a3b8; }
+.step-label { font-size:13px; font-weight:700; }
+.step-label.active { color:#0891b2; }
+.step-label.done { color:#10b981; }
+.step-label.idle { color:#94a3b8; }
+.step-line { flex:1; height:3px; background:#e2e8f0; margin:0 12px; border-radius:3px; transition: background 0.3s; }
+.step-line.done { background:#10b981; }
 
-.poli-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.poli-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:8px; }
 .poli-card {
-    border:2px solid var(--gray-200); border-radius:12px; padding:14px 10px;
-    text-align:center; cursor:pointer; transition:all 0.2s;
-    background:white;
+    border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 22px 14px;
+    text-align: center; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff; position: relative; box-shadow: 0 2px 6px rgba(15,23,42,0.03);
 }
-.poli-card:hover { border-color:var(--accent); background:#f0f9ff; }
-.poli-card.selected { border-color:var(--accent); background:#e0f2fe; }
-.poli-icon { font-size:24px; margin-bottom:6px; }
-.poli-name { font-size:11px; font-weight:700; color:#0c4a6e; line-height:1.3; }
-.poli-info { font-size:10px; color:#94a3b8; margin-top:2px; }
+.poli-card:hover { border-color: #0891b2; transform: translateY(-3px); box-shadow: 0 10px 20px -5px rgba(8,145,178,0.15); }
+.poli-card.selected { border-color: #0891b2; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); box-shadow: 0 0 0 3px rgba(8,145,178,0.25); }
+.poli-icon {
+    width: 48px; height: 48px; background: #e0f2fe; color: #0891b2;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin: 0 auto 12px; transition: all 0.2s;
+}
+.poli-card.selected .poli-icon { background: #0891b2; color: #ffffff; }
+.poli-name { font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.3; }
+.poli-info { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 500; }
 
 .dokter-card {
-    border:2px solid var(--gray-200); border-radius:14px; padding:16px;
-    cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:14px;
-    background:white; margin-bottom:10px;
+    border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 18px 20px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 16px;
+    background: white; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(15,23,42,0.03);
 }
-.dokter-card:hover { border-color:var(--accent); }
-.dokter-card.selected { border-color:var(--accent); background:#e0f2fe; }
+.dokter-card:hover { border-color: #0891b2; transform: translateY(-2px); box-shadow: 0 8px 16px -4px rgba(8,145,178,0.12); }
+.dokter-card.selected { border-color: #0891b2; background: #f0f9ff; box-shadow: 0 0 0 3px rgba(8,145,178,0.2); }
 .dokter-avatar {
-    width:44px; height:44px; background:#e0f2fe; border-radius:12px;
-    display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+    width: 48px; height: 48px; background: linear-gradient(135deg, #e0f2fe, #bae6fd); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; color: #0284c7; flex-shrink: 0;
 }
 .jadwal-tag {
-    display:inline-block; padding:2px 8px; border-radius:6px;
-    font-size:10px; font-weight:600; background:#f1f5f9; color:#475569; margin:2px;
+    display: inline-block; padding: 3px 9px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; margin: 2px;
 }
 
 .booking-summary {
-    background:linear-gradient(135deg,#0c4a6e,#0891b2);
-    border-radius:16px; padding:22px; color:white; margin-bottom:24px;
+    background: linear-gradient(135deg,#0c4a6e,#0891b2);
+    border-radius: 18px; padding: 24px; color: white; margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(8,145,178,0.3);
 }
 .booking-summary .row {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1); font-size:13px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.15); font-size: 13.5px;
 }
-.booking-summary .row:last-child { border:none; }
-.booking-summary .row .label { opacity:0.7; }
-.booking-summary .row .val { font-weight:700; }
+.booking-summary .row:last-child { border: none; }
+.booking-summary .row .label { opacity: 0.8; font-weight: 500; }
+.booking-summary .row .val { font-weight: 800; }
 
-.jam-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+.jam-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 8px; }
 .jam-btn {
-    padding:8px; border:2px solid var(--gray-200); border-radius:10px;
-    text-align:center; font-size:12px; font-weight:600; cursor:pointer;
-    transition:all 0.2s; background:white; color:#475569;
+    padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
+    text-align: center; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; background: white; color: #334155; box-shadow: 0 1px 3px rgba(15,23,42,0.03);
 }
-.jam-btn:hover { border-color:var(--accent); color:var(--accent); }
-.jam-btn.selected { border-color:var(--accent); background:var(--accent); color:white; }
-.jam-btn.full { background:#fee2e2; border-color:#fecaca; color:#dc2626; cursor:not-allowed; opacity:0.6; }
+.jam-btn:hover { border-color: #0891b2; color: #0891b2; background: #f0f9ff; }
+.jam-btn.selected { border-color: #0891b2; background: #0891b2; color: white; box-shadow: 0 4px 10px rgba(8,145,178,0.3); }
+.jam-btn.full { background: #fee2e2; border-color: #fecaca; color: #dc2626; cursor: not-allowed; opacity: 0.6; }
 
 @media(max-width:768px){
-    .poli-grid { grid-template-columns:repeat(2,1fr); }
-    .jam-grid { grid-template-columns:repeat(3,1fr); }
+    .poli-grid { grid-template-columns: repeat(2, 1fr); }
+    .jam-grid { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
 @endpush
 
 @section('content')
-<div style="max-width:860px;margin:0 auto">
+<div style="max-width:1040px;margin:0 auto">
 
 <!-- BREADCRUMB -->
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:#64748b">
@@ -279,7 +284,7 @@
         <button type="button" onclick="prevStep(4)" class="btn btn-outline">
             <i class="fas fa-arrow-left"></i> Kembali
         </button>
-        <button type="submit" class="btn btn-primary" id="btnSubmit">
+        <button type="button" onclick="confirmSubmitBooking()" class="btn btn-primary" id="btnSubmit">
             <i class="fas fa-check-circle"></i> Konfirmasi & Daftar Sekarang
         </button>
     </div>
@@ -443,10 +448,31 @@ function updateSteps(current) {
     }
 }
 
-document.getElementById('formDaftar').addEventListener('submit', function() {
-    const btn = document.getElementById('btnSubmit');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-});
+function confirmSubmitBooking() {
+    const form = document.getElementById('formDaftar');
+    Swal.fire({
+        title: 'Konfirmasi Pendaftaran',
+        text: 'Apakah data pendaftaran berobat yang Anda pilih sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0891b2',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: '<i class="fas fa-check-circle"></i> Ya, Daftar Sekarang',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses Pendaftaran...';
+            Swal.fire({
+                title: 'Memproses Pendaftaran...',
+                text: 'Menerbitkan nomor antrian Anda',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            form.submit();
+        }
+    });
+}
 </script>
 @endpush
