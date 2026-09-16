@@ -205,6 +205,17 @@ class AdminController extends Controller
             'catatan_admin' => $request->catatan_admin ?? $pendaftaran->catatan_admin,
         ]);
 
+        // Sync encounter status update to SatuSehat
+        if ($pendaftaran->satusehat_encounter_id) {
+            $ssStatus = match($request->status) {
+                'dipanggil' => 'in-progress',
+                'selesai'   => 'finished',
+                'batal'     => 'cancelled',
+                default     => 'arrived'
+            };
+            $this->satuSehat->updateEncounterStatus($pendaftaran->satusehat_encounter_id, $ssStatus);
+        }
+
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Status berhasil diperbarui']);
         }
@@ -216,15 +227,33 @@ class AdminController extends Controller
     {
         $pendaftaran->update([
             'tekanan_darah' => $request->tekanan_darah,
-            'suhu' => $request->suhu,
-            'nadi' => $request->nadi,
-            'respirasi' => $request->respirasi,
-            'berat_badan' => $request->berat_badan,
+            'suhu'         => $request->suhu,
+            'nadi'         => $request->nadi,
+            'respirasi'    => $request->respirasi,
+            'berat_badan'  => $request->berat_badan,
             'tinggi_badan' => $request->tinggi_badan,
-            'spo2' => $request->spo2,
+            'spo2'         => $request->spo2,
         ]);
 
-        return back()->with('success', 'Tanda vital berhasil disimpan.');
+        // Auto sync vital signs (Observation) ke SatuSehat jika Encounter sudah terbuat
+        $pasien = $pendaftaran->pasien;
+        if ($pendaftaran->satusehat_encounter_id && $pasien && $pasien->satusehat_id) {
+            $this->satuSehat->syncVitalSigns([
+                'patient_id'   => $pasien->satusehat_id,
+                'encounter_id' => $pendaftaran->satusehat_encounter_id,
+                'vitals'       => [
+                    'tekanan_darah' => $pendaftaran->tekanan_darah,
+                    'suhu'          => $pendaftaran->suhu,
+                    'nadi'          => $pendaftaran->nadi,
+                    'respirasi'     => $pendaftaran->respirasi,
+                    'berat_badan'   => $pendaftaran->berat_badan,
+                    'tinggi_badan'  => $pendaftaran->tinggi_badan,
+                    'spo2'          => $pendaftaran->spo2,
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'Tanda vital berhasil disimpan & dikirim ke SatuSehat.');
     }
 
     // ======== DOKTER MANAGEMENT ========
@@ -567,54 +596,19 @@ class AdminController extends Controller
             return back()->withErrors(['error' => 'Data pasien tidak ditemukan.']);
         }
 
-        // Pastikan pasien punya SatuSehat ID
-        if (!$pasien->satusehat_id) {
-            $ssPatient = $this->satuSehat->getOrCreatePatient([
-                'nik'           => $pasien->nik,
-                'nama_lengkap'  => $pasien->nama_lengkap,
-                'no_hp'         => $pasien->no_hp,
-                'jenis_kelamin' => $pasien->jenis_kelamin,
-                'tanggal_lahir' => $pasien->tanggal_lahir
-                    ? $pasien->tanggal_lahir->format('Y-m-d') : null,
-                'alamat'        => $pasien->alamat,
-                'kabupaten'     => $pasien->kabupaten,
-                'kode_pos'      => $pasien->kode_pos,
-            ]);
-
-            if (!empty($ssPatient['success']) && !empty($ssPatient['data']['id'])) {
-                $pasien->update(['satusehat_id' => $ssPatient['data']['id']]);
-                $pasien->refresh();
-            } else {
-                return back()->withErrors(['error' => 'Gagal mendaftarkan pasien ke SatuSehat. Cek log untuk detail.']);
-            }
-        }
-
-        $encounterData = [
-            'patient_id'        => $pasien->satusehat_id,
-            'nama_pasien'       => $pasien->nama_lengkap,
-            'dokter_id'         => $dokter->satusehat_id ?? '',
-            'nama_dokter'       => $dokter ? $dokter->nama_lengkap : '',
-            'tanggal_kunjungan' => $pendaftaran->tanggal_kunjungan->format('Y-m-d'),
-            'jam_kunjungan'     => $pendaftaran->jam_kunjungan,
-            'keluhan'           => $pendaftaran->keluhan,
-            'kode_booking'      => $pendaftaran->kode_booking,
-            'nama_poli'         => $pendaftaran->poli->nama ?? 'Rawat Jalan',
-        ];
-
-        $response = $this->satuSehat->createEncounter($encounterData);
-
-        if (!empty($response['success'])) {
-            $pendaftaran->update([
-                'satusehat_encounter_id' => $response['data']['id'] ?? null,
-                'satusehat_response'     => $response['data'],
-                'satusehat_status'       => 'success',
-            ]);
-            return back()->with('success', 'Sinkronisasi SatuSehat berhasil.');
-        }
-
-        return back()->withErrors([
-            'error' => 'Sinkronisasi Encounter gagal: ' . ($response['error'] ?? 'Unknown error'),
+        $res = $this->satuSehat->syncFullEncounter([
+            'pasien'      => $pasien,
+            'pendaftaran' => $pendaftaran,
+            'dokter'      => $dokter,
         ]);
+
+        if (!empty($res['success'])) {
+            $msg = 'Berhasil sinkronisasi 4 data SatuSehat (Encounter, Condition, Observation Vital Signs, Encounter Update Status)!';
+            return back()->with('success', $msg);
+        } else {
+            $pendaftaran->update(['satusehat_status' => 'failed']);
+            return back()->withErrors(['error' => $res['error'] ?? 'Gagal sinkronisasi ke SatuSehat. Cek log untuk detail.']);
+        }
     }
 
     // ======== LAPORAN ========
