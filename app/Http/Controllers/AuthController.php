@@ -20,6 +20,14 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
+    public function showAdminLogin()
+    {
+        if (Auth::check()) {
+            return $this->redirectByRole();
+        }
+        return view('auth.admin_login');
+    }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -135,9 +143,16 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $role = Auth::user() ? Auth::user()->role : null;
+        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if (in_array($role, ['admin', 'pendaftaran', 'rekam_medis'])) {
+            return redirect()->route('admin.login')->with('success', 'Anda berhasil keluar.');
+        }
+
         return redirect()->route('login')->with('success', 'Anda berhasil keluar.');
     }
 
