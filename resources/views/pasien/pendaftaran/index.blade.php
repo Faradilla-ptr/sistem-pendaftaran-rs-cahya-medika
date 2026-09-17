@@ -78,8 +78,8 @@
 </div>
 
 @if($pendaftaran->hasPages())
-<div style="display:flex;justify-content:center;margin-top:20px">
-    {{ $pendaftaran->links() }}
+<div style="margin-top:20px">
+    {{ $pendaftaran->links('vendor.pagination.custom') }}
 </div>
 @endif
 @endsection

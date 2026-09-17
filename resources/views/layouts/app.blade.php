@@ -11,7 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --sidebar-w: 230px;
+            --sidebar-w: 240px;
+            --sidebar-collapsed-w: 72px;
             --border: #e2e8f0;
             --text-dark: #0f172a;
             --text-mid: #334155;
@@ -21,7 +22,7 @@
             --warning: #d97706;
             --danger: #dc2626;
             --shadow-sm: 0 1px 3px rgba(15,23,42,0.05);
-            --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+            --shadow-md: 0 4px 14px rgba(15,23,42,0.07);
             --radius: 10px;
             --radius-lg: 14px;
         }
@@ -29,28 +30,42 @@
         body { font-family: 'Inter', sans-serif; background: #f8fafc; color: var(--text-dark); display: flex; min-height: 100vh; font-size: 14px; }
 
         /* SIDEBAR */
-        .sidebar { width: var(--sidebar-w); background: #ffffff; border-right: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 2px 0 10px rgba(15,23,42,0.02); }
-        .sb-logo { padding: 18px 16px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; }
+        .sidebar { width: var(--sidebar-w); background: #ffffff; border-right: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; box-shadow: 2px 0 10px rgba(15,23,42,0.02); transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar.collapsed { width: var(--sidebar-collapsed-w); }
+        .sidebar.collapsed .sb-logo-text,
+        .sidebar.collapsed .sb-role-badge-text,
+        .sidebar.collapsed .sb-section-title,
+        .sidebar.collapsed .sb-nav-text { display: none !important; }
+        .sidebar.collapsed .sb-logo { justify-content: center; padding: 14px 8px; }
+        .sidebar.collapsed .sb-role-badge { justify-content: center; padding: 8px; margin: 10px 8px; }
+        .sidebar.collapsed .sb-nav-item { justify-content: center; padding: 11px 0; }
+        .sidebar.collapsed .sb-nav-item i { margin: 0; font-size: 16px; }
+
+        .sb-logo { padding: 18px 16px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
         .sb-logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #38bdf8; flex-shrink: 0; box-shadow: 0 4px 10px rgba(15,23,42,0.15); }
         .sb-logo-text .name { font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.2; letter-spacing: -0.2px; }
         .sb-logo-text .sub { font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 500; }
-        .sb-role-badge { margin: 12px 14px 6px; padding: 7px 12px; border-radius: 8px; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; gap: 7px; letter-spacing: 0.3px; }
+        .sb-role-badge { margin: 12px 14px 6px; padding: 7px 12px; border-radius: 8px; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; gap: 7px; letter-spacing: 0.3px; white-space: nowrap; }
         .sb-role-badge.admin, .sb-role-badge.pendaftaran { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
         .sb-role-badge.rekam_medis { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
         .sb-role-badge.pasien { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
         .sb-nav { flex: 1; padding: 8px 12px; }
         .sb-section { margin-bottom: 8px; }
-        .sb-section-title { font-size: 9.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.2px; padding: 12px 10px 6px; }
-        .sb-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; color: #475569; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.2s ease; margin-bottom: 2px; }
+        .sb-section-title { font-size: 9.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.2px; padding: 12px 10px 6px; white-space: nowrap; }
+        .sb-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; color: #475569; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.2s ease; margin-bottom: 2px; white-space: nowrap; }
         .sb-nav-item i { width: 18px; text-align: center; font-size: 13px; color: #64748b; flex-shrink: 0; transition: color 0.2s; }
         .sb-nav-item:hover { background: #f8fafc; color: #0f172a; }
         .sb-nav-item:hover i { color: #0891b2; }
         .sb-nav-item.active { background: linear-gradient(135deg, #0c4a6e, #0891b2); color: #ffffff; font-weight: 700; box-shadow: 0 4px 12px rgba(8,145,178,0.25); }
         .sb-nav-item.active i { color: #ffffff; }
 
-        /* MAIN & TOPBAR DROPDOWN */
-        .main-wrap { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f8fafc; }
+        /* MAIN & TOPBAR */
+        .main-wrap { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f8fafc; transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .main-wrap.collapsed { margin-left: var(--sidebar-collapsed-w); }
         .topbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(15,23,42,0.03); }
+        .topbar-left { display: flex; align-items: center; gap: 8px; }
+        .sidebar-toggle-btn { background: #ffffff; border: 1.5px solid #cbd5e1; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(15,23,42,0.04); }
+        .sidebar-toggle-btn:hover { border-color: #0891b2; color: #0891b2; background: #f0f9ff; }
         .topbar-title { font-size: 16px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; }
         .topbar-right { display: flex; align-items: center; gap: 14px; }
         .topbar-date { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; }
@@ -161,109 +176,104 @@
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
 
-        @media (max-width:768px) { .sidebar { transform:translateX(-100%); } .main-wrap { margin-left:0; } .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; } .page-wrap { padding:14px; } }
+        @media (max-width:768px) { .sidebar { transform:translateX(-100%); } .sidebar.mobile-open { transform:translateX(0); width: var(--sidebar-w) !important; } .main-wrap { margin-left:0 !important; } .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; } .page-wrap { padding:14px; } }
     </style>
     @stack('styles')
 </head>
 <body>
 @php
     $userRole = auth()->user()->role ?? 'pasien';
-    if (request()->is('pendaftaran*') || request()->is('admin*')) {
-        $role = 'pendaftaran';
-    } elseif (request()->is('rekam-medis*')) {
-        $role = 'rekam_medis';
-    } elseif (request()->is('pasien*')) {
-        $role = 'pasien';
-    } else {
-        $role = ($userRole === 'pendaftaran' || $userRole === 'admin') ? 'pendaftaran' : ($userRole === 'rekam_medis' ? 'rekam_medis' : 'pasien');
-    }
+    $role = $userRole;
 @endphp
 <aside class="sidebar">
-    <div class="sb-logo" style="padding:16px 20px;display:flex;align-items:center;justify-content:center">
-        <img src="{{ asset('logo.png') }}" alt="Logo RS Cahya Medika" style="max-height:48px;width:auto;object-fit:contain">
+    <div class="sb-logo" style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9;white-space:nowrap">
+        <img src="{{ asset('logo.png') }}" alt="Logo RS Cahya Medika" style="max-height:40px;width:auto;object-fit:contain;flex-shrink:0">
+        <div class="sb-logo-text" style="display:flex;flex-direction:column;justify-content:center;line-height:1.2;overflow:hidden">
+            <span class="name" style="font-size:12.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">RS Cahya Medika</span>
+            <span class="sub" style="font-size:9.5px;font-weight:700;color:#0891b2;letter-spacing:0.4px;margin-top:1px">BONDOWOSO</span>
+        </div>
     </div>
     <div class="sb-role-badge {{ $role }}">
         <i class="fas fa-{{ $role === 'pasien' ? 'user' : ($role === 'rekam_medis' ? 'file-medical' : 'desktop') }}"></i>
-        @if($role==='admin') ADMIN (SUPER ADMIN)
-        @elseif($role==='pendaftaran') PENDAFTARAN (LOKET)
-        @elseif($role==='rekam_medis') REKAM MEDIS
-        @else PORTAL PASIEN
-        @endif
+        <span class="sb-role-badge-text">
+            @if($role==='admin') ADMIN (SUPER ADMIN)
+            @elseif($role==='pendaftaran') PENDAFTARAN (LOKET)
+            @elseif($role==='rekam_medis') REKAM MEDIS
+            @else PORTAL PASIEN
+            @endif
+        </span>
     </div>
     <nav class="sb-nav">
         @if($role === 'rekam_medis')
         <div class="sb-section">
             <div class="sb-section-title">Rekam Medis</div>
-            <a href="{{ route('rekam_medis.dashboard') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-gauge-high"></i> Dashboard Rekam Medis
+            <a href="{{ route('rekam_medis.dashboard') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.dashboard') ? 'active' : '' }}" title="Dashboard Rekam Medis">
+                <i class="fas fa-gauge-high"></i> <span class="sb-nav-text">Dashboard RM</span>
             </a>
-            <a href="{{ route('rekam_medis.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pendaftaran*') ? 'active' : '' }}">
-                <i class="fas fa-file-medical"></i> Data Berobat & Antrean
+            <a href="{{ route('rekam_medis.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pendaftaran*') ? 'active' : '' }}" title="Data Berobat & Antrean">
+                <i class="fas fa-file-medical"></i> <span class="sb-nav-text">Data Berobat & Antrean</span>
             </a>
-            <a href="{{ route('rekam_medis.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pasien*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i> Data Pasien & No. RM
+            <a href="{{ route('rekam_medis.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pasien*') ? 'active' : '' }}" title="Data Pasien & No. RM">
+                <i class="fas fa-users"></i> <span class="sb-nav-text">Data Pasien & No. RM</span>
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Integrasi & Pelaporan</div>
-            <a href="{{ route('rekam_medis.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.satusehat*') ? 'active' : '' }}">
-                <i class="fas fa-link"></i> SatuSehat API
+            <a href="{{ route('rekam_medis.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.satusehat*') ? 'active' : '' }}" title="SatuSehat API">
+                <i class="fas fa-link"></i> <span class="sb-nav-text">SatuSehat API</span>
             </a>
-            <a href="{{ route('rekam_medis.laporan') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.laporan*') ? 'active' : '' }}">
-                <i class="fas fa-chart-bar"></i> Laporan Rekam Medis
+            <a href="{{ route('rekam_medis.laporan') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.laporan*') ? 'active' : '' }}" title="Laporan Rekam Medis">
+                <i class="fas fa-chart-bar"></i> <span class="sb-nav-text">Laporan Rekam Medis</span>
             </a>
         </div>
         @elseif($role === 'pendaftaran' || $role === 'admin')
         <div class="sb-section">
             <div class="sb-section-title">Pendaftaran & Loket</div>
-            <a href="{{ route('pendaftaran.dashboard') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dashboard') || request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-gauge-high"></i> Dashboard Loket
+            <a href="{{ route('pendaftaran.dashboard') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dashboard') || request()->routeIs('admin.dashboard') ? 'active' : '' }}" title="Dashboard Loket">
+                <i class="fas fa-gauge-high"></i> <span class="sb-nav-text">Dashboard Loket</span>
             </a>
-            <a href="{{ route('pendaftaran.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pendaftaran*') || request()->routeIs('admin.pendaftaran*') ? 'active' : '' }}">
-                <i class="fas fa-list-check"></i> Antrean & Registrasi
+            <a href="{{ route('pendaftaran.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pendaftaran*') || request()->routeIs('admin.pendaftaran*') ? 'active' : '' }}" title="Antrean & Registrasi">
+                <i class="fas fa-list-check"></i> <span class="sb-nav-text">Antrean & Registrasi</span>
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Master Data Hospital</div>
-            <a href="{{ route('pendaftaran.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pasien*') || request()->routeIs('admin.pasien*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i> Master Data Pasien
+            <a href="{{ route('pendaftaran.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pasien*') || request()->routeIs('admin.pasien*') ? 'active' : '' }}" title="Master Data Pasien">
+                <i class="fas fa-users"></i> <span class="sb-nav-text">Master Data Pasien</span>
             </a>
-            <a href="{{ route('pendaftaran.dokter.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dokter*') || request()->routeIs('admin.dokter*') ? 'active' : '' }}">
-                <i class="fas fa-user-doctor"></i> Dokter Spesialis
+            <a href="{{ route('pendaftaran.dokter.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dokter*') || request()->routeIs('admin.dokter*') ? 'active' : '' }}" title="Dokter Spesialis">
+                <i class="fas fa-user-doctor"></i> <span class="sb-nav-text">Dokter Spesialis</span>
             </a>
-            <a href="{{ route('pendaftaran.poli.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.poli*') || request()->routeIs('admin.poli*') ? 'active' : '' }}">
-                <i class="fas fa-hospital"></i> Poliklinik & Kuota
+            <a href="{{ route('pendaftaran.poli.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.poli*') || request()->routeIs('admin.poli*') ? 'active' : '' }}" title="Poliklinik & Kuota">
+                <i class="fas fa-hospital"></i> <span class="sb-nav-text">Poliklinik & Kuota</span>
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Pelaporan Loket</div>
-            <a href="{{ route('pendaftaran.laporan') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.laporan*') || request()->routeIs('admin.laporan*') ? 'active' : '' }}">
-                <i class="fas fa-chart-bar"></i> Sensus Harian Loket
-            </a>
-            <a href="{{ route('pendaftaran.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.satusehat*') || request()->routeIs('admin.satusehat*') ? 'active' : '' }}">
-                <i class="fas fa-link"></i> SatuSehat API
+            <a href="{{ route('pendaftaran.laporan') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.laporan*') || request()->routeIs('admin.laporan*') ? 'active' : '' }}" title="Sensus Harian Loket">
+                <i class="fas fa-chart-bar"></i> <span class="sb-nav-text">Sensus Harian Loket</span>
             </a>
         </div>
         @else
         <div class="sb-section">
             <div class="sb-section-title">Menu Pasien</div>
-            <a href="{{ route('pasien.dashboard') }}" class="sb-nav-item {{ request()->routeIs('pasien.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-house"></i> Beranda
+            <a href="{{ route('pasien.dashboard') }}" class="sb-nav-item {{ request()->routeIs('pasien.dashboard') ? 'active' : '' }}" title="Beranda">
+                <i class="fas fa-house"></i> <span class="sb-nav-text">Beranda</span>
             </a>
-            <a href="{{ route('pasien.pendaftaran.create') }}" class="sb-nav-item {{ request()->routeIs('pasien.pendaftaran.create') ? 'active' : '' }}">
-                <i class="fas fa-plus-circle"></i> Daftar Berobat Baru
+            <a href="{{ route('pasien.pendaftaran.create') }}" class="sb-nav-item {{ request()->routeIs('pasien.pendaftaran.create') ? 'active' : '' }}" title="Daftar Berobat Baru">
+                <i class="fas fa-plus-circle"></i> <span class="sb-nav-text">Daftar Berobat Baru</span>
             </a>
-            <a href="{{ route('pasien.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('pasien.pendaftaran.index') || request()->routeIs('pasien.pendaftaran.show') ? 'active' : '' }}">
-                <i class="fas fa-ticket"></i> Tiket & Antrean Saya
+            <a href="{{ route('pasien.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('pasien.pendaftaran.index') || request()->routeIs('pasien.pendaftaran.show') ? 'active' : '' }}" title="Tiket & Antrean Saya">
+                <i class="fas fa-ticket"></i> <span class="sb-nav-text">Tiket & Antrean Saya</span>
             </a>
-            <a href="{{ route('pasien.riwayat') }}" class="sb-nav-item {{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
-                <i class="fas fa-clock-rotate-left"></i> Riwayat Kunjungan
+            <a href="{{ route('pasien.riwayat') }}" class="sb-nav-item {{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}" title="Riwayat Kunjungan">
+                <i class="fas fa-clock-rotate-left"></i> <span class="sb-nav-text">Riwayat Kunjungan</span>
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Profil Pasien</div>
-            <a href="{{ route('pasien.profil') }}" class="sb-nav-item {{ request()->routeIs('pasien.profil') ? 'active' : '' }}">
-                <i class="fas fa-id-card"></i> Profil & Identitas
+            <a href="{{ route('pasien.profil') }}" class="sb-nav-item {{ request()->routeIs('pasien.profil') ? 'active' : '' }}" title="Profil & Identitas">
+                <i class="fas fa-id-card"></i> <span class="sb-nav-text">Profil & Identitas</span>
             </a>
         </div>
         @endif
@@ -272,7 +282,12 @@
 
 <div class="main-wrap">
     <header class="topbar">
-        <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
+        <div class="topbar-left">
+            <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Buka / Tutup Sidebar">
+                <i class="fas fa-bars-staggered"></i>
+            </button>
+            <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
+        </div>
         <div class="topbar-right">
             @php
                 $notifCount = 0;
@@ -320,12 +335,14 @@
                         <div class="udd-email">{{ auth()->user()->email }}</div>
                     </div>
                     <div class="udd-divider"></div>
-                    @if(!auth()->user()->isAdmin())
-                    <a href="{{ route('pasien.profil') }}" class="udd-item">
-                        <i class="fas fa-user-gear"></i> Profil & Identitas
+                    @php
+                        $r = request()->is('rekam-medis*') ? 'rekam_medis.' : (request()->is('pendaftaran*') ? 'pendaftaran.' : 'admin.');
+                        $profRoute = auth()->user()->role === 'pasien' ? route('pasien.profil') : route($r . 'profil');
+                    @endphp
+                    <a href="{{ $profRoute }}" class="udd-item">
+                        <i class="fas fa-user-gear"></i> Profil & Akun Saya
                     </a>
                     <div class="udd-divider"></div>
-                    @endif
                     <form id="logoutForm" action="{{ route('logout') }}" method="POST" style="display:none">
                         @csrf
                     </form>
@@ -349,6 +366,29 @@
 </div>
 
 <script>
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainWrap = document.querySelector('.main-wrap');
+    if (!sidebar || !mainWrap) return;
+    
+    // Check if mobile view
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('mobile-open');
+        return;
+    }
+
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    mainWrap.classList.toggle('collapsed', isCollapsed);
+    localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.innerWidth > 768 && localStorage.getItem('sidebar-collapsed') === 'true') {
+        document.querySelector('.sidebar')?.classList.add('collapsed');
+        document.querySelector('.main-wrap')?.classList.add('collapsed');
+    }
+});
+
 function toggleUserDropdown(e) {
     e.stopPropagation();
     const menu = document.getElementById('userDropdownMenu');

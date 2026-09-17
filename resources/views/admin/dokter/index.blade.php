@@ -1,23 +1,17 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Data Dokter Spesialis - RS Cahya Medika')
 @section('page-title', 'Data Dokter & Jadwal Praktik')
 
 @section('content')
-<div class="page-header">
-    <div>
-        <div class="page-header-title">Data Dokter &amp; Jadwal Praktik</div>
-        <div class="page-header-sub">Manajemen dokter, STR, NIK dan jadwal pelayanan poliklinik</div>
-    </div>
-    <a href="{{ route('admin.dokter.create') }}" class="btn btn-primary btn-lg">
-        <i class="fas fa-plus"></i> Tambah Dokter
-    </a>
-</div>
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
 
 <div class="card" style="margin-bottom:18px">
     <div class="card-body" style="padding:14px 18px">
-        <form method="GET" action="{{ route('admin.dokter.index') }}">
+        <form method="GET" action="{{ route($r . 'dokter.index') }}">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-                <div style="display:flex;flex-direction:column;gap:4px;min-width:180px">
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
                     <label style="font-size:11px;font-weight:600;color:#6b7280">Filter Poli</label>
                     <select name="poli_id" class="form-select" style="padding:6px 10px;font-size:12px">
                         <option value="">Semua Poli</option>
@@ -26,11 +20,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:4px;min-width:190px">
-                    <label style="font-size:11px;font-weight:600;color:#6b7280">Spesialisasi</label>
-                    <input type="text" name="spesialisasi" class="form-control" value="{{ request('spesialisasi') }}" placeholder="Cari spesialisasi..." style="padding:6px 10px;font-size:12px">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:4px;min-width:150px">
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:120px">
                     <label style="font-size:11px;font-weight:600;color:#6b7280">Hari Praktik</label>
                     <select name="hari" class="form-select" style="padding:6px 10px;font-size:12px">
                         <option value="">Semua Hari</option>
@@ -39,10 +29,22 @@
                         @endforeach
                     </select>
                 </div>
+                <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px">
+                    <label style="font-size:11px;font-weight:600;color:#6b7280">Spesialisasi / Nama Dokter</label>
+                    <div style="position:relative">
+                        <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:12px"></i>
+                        <input type="text" name="spesialisasi" class="form-control" value="{{ request('spesialisasi') }}" placeholder="Cari spesialisasi..." style="padding:6px 10px 6px 32px;font-size:12px">
+                    </div>
+                </div>
                 <div style="display:flex;gap:6px;align-self:flex-end">
-                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Cari</button>
                     @if(request()->hasAny(['poli_id','spesialisasi','hari']))
-                        <a href="{{ route('admin.dokter.index') }}" class="btn btn-outline btn-sm">Reset</a>
+                        <a href="{{ route($r . 'dokter.index') }}" class="btn btn-outline btn-sm">Reset</a>
+                    @endif
+                    @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                        <a href="{{ route($r . 'dokter.create') }}" class="btn btn-primary btn-sm" style="white-space:nowrap;background:#1d4ed8">
+                            <i class="fas fa-plus me-1"></i> Tambah Dokter
+                        </a>
                     @endif
                 </div>
             </div>
@@ -114,22 +116,29 @@
                     </td>
                     <td><span class="badge badge-{{ $d->is_active ? 'success' : 'danger' }}">{{ $d->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                     <td>
-                        <a href="{{ route('admin.dokter.edit', $d->id) }}" class="btn btn-outline btn-sm" title="Edit Data Dokter">
-                            <i class="fas fa-pen-to-square"></i>
+                        @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                        <a href="{{ route($r . 'dokter.edit', $d->id) }}" class="btn btn-outline btn-sm" title="Edit Data Dokter">
+                            <i class="fas fa-pen-to-square"></i> Edit
                         </a>
+                        @else
+                        <span class="badge badge-secondary" style="font-size:10px">Read-Only</span>
+                        @endif
                     </td>
                 </tr>
                 @empty
                 <tr><td colspan="8" style="text-align:center;padding:40px;color:#9ca3af">
                     <i class="fas fa-user-doctor" style="font-size:28px;display:block;margin-bottom:8px;color:#d1d5db"></i>
-                    Belum ada data dokter. <a href="{{ route('admin.dokter.create') }}" style="color:#1d4ed8">Tambah sekarang</a>
+                    Belum ada data dokter. 
+                    @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                    <a href="{{ route($r . 'dokter.create') }}" style="color:#1d4ed8">Tambah sekarang</a>
+                    @endif
                 </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
     @if($dokter->hasPages())
-    <div style="padding:14px 18px;border-top:1px solid #f3f4f6">{{ $dokter->withQueryString()->links() }}</div>
+    <div style="padding:14px 18px;border-top:1px solid #f3f4f6">{{ $dokter->withQueryString()->links('vendor.pagination.custom') }}</div>
     @endif
 </div>
 @endsection

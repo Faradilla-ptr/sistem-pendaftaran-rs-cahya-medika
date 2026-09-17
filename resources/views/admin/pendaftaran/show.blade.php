@@ -1,15 +1,19 @@
 @extends('layouts.app')
-@section('title', 'Detail Pendaftaran - Admin RS Cahya Medika')
+@section('title', 'Detail Pendaftaran - RS Cahya Medika')
 @section('page-title', 'Detail Pendaftaran')
 
 @section('content')
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
+
 <div style="max-width:900px;margin:0 auto">
 
 <!-- BREADCRUMB -->
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:#64748b">
-    <a href="{{ route('admin.dashboard') }}" style="color:#0891b2;text-decoration:none">Dashboard</a>
+    <a href="{{ route($r . 'dashboard') }}" style="color:#0891b2;text-decoration:none">Dashboard</a>
     <i class="fas fa-chevron-right" style="font-size:10px"></i>
-    <a href="{{ route('admin.pendaftaran.index') }}" style="color:#0891b2;text-decoration:none">Pendaftaran</a>
+    <a href="{{ route($r . 'pendaftaran.index') }}" style="color:#0891b2;text-decoration:none">Pendaftaran</a>
     <i class="fas fa-chevron-right" style="font-size:10px"></i>
     <span>{{ $pendaftaran->kode_booking }}</span>
 </div>
@@ -47,12 +51,14 @@
             <div class="card-header">
                 <div class="card-title">👤 Data Pasien</div>
                 <div style="display:flex;gap:6px">
-                    <a href="{{ route('admin.pendaftaran.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">
+                    <a href="{{ route($r . 'pendaftaran.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">
                         <i class="fas fa-file-pdf"></i> Cetak Form PDF
                     </a>
-                    <a href="{{ route('admin.pasien.edit', $pendaftaran->pasien->id) }}" class="btn btn-outline btn-sm">
+                    @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                    <a href="{{ route($r . 'pasien.edit', $pendaftaran->pasien->id) }}" class="btn btn-outline btn-sm">
                         <i class="fas fa-edit"></i> Edit
                     </a>
+                    @endif
                 </div>
             </div>
             <div class="card-body">
@@ -95,10 +101,11 @@
     <div style="display:flex;flex-direction:column;gap:20px">
 
         <!-- UPDATE STATUS -->
+        @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
         <div class="card">
             <div class="card-header"><div class="card-title">🔄 Update Status</div></div>
             <div class="card-body">
-                <form action="{{ route('admin.pendaftaran.status', $pendaftaran->id) }}" method="POST">
+                <form action="{{ route($r . 'pendaftaran.status', $pendaftaran->id) }}" method="POST">
                     @csrf @method('PATCH')
                     <div class="form-group">
                         <label class="form-label">Status Kunjungan</label>
@@ -119,12 +126,14 @@
                 </form>
             </div>
         </div>
+        @endif
 
         <!-- TANDA VITAL -->
         <div class="card">
-            <div class="card-header"><div class="card-title">💉 Input Tanda Vital</div></div>
+            <div class="card-header"><div class="card-title">💉 Tanda Vital {{ in_array(auth()->user()->role, ['admin', 'pendaftaran']) ? '(Edit)' : '(Read-Only)' }}</div></div>
             <div class="card-body">
-                <form action="{{ route('admin.pendaftaran.vital', $pendaftaran->id) }}" method="POST">
+                @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                <form action="{{ route($r . 'pendaftaran.vital', $pendaftaran->id) }}" method="POST">
                     @csrf
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
@@ -160,6 +169,17 @@
                         <i class="fas fa-heartbeat"></i> Simpan Tanda Vital
                     </button>
                 </form>
+                @else
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Tekanan Darah</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->tekanan_darah ?? '-' }}</div></div>
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Suhu</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->suhu ? $pendaftaran->suhu . ' °C' : '-' }}</div></div>
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Nadi</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->nadi ? $pendaftaran->nadi . ' bpm' : '-' }}</div></div>
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Respirasi</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->respirasi ?? '-' }}</div></div>
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Berat Badan</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->berat_badan ? $pendaftaran->berat_badan . ' kg' : '-' }}</div></div>
+                    <div><div style="font-size:11px;color:#94a3b8;font-weight:700">Tinggi Badan</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->tinggi_badan ? $pendaftaran->tinggi_badan . ' cm' : '-' }}</div></div>
+                    <div style="grid-column:1/-1"><div style="font-size:11px;color:#94a3b8;font-weight:700">SpO2</div><div style="font-size:13px;font-weight:600">{{ $pendaftaran->spo2 ? $pendaftaran->spo2 . ' %' : '-' }}</div></div>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -179,8 +199,8 @@
                 </div>
                 @endif
 
-                @if($pendaftaran->satusehat_status !== 'success')
-                <form action="{{ route('admin.satusehat.sync', $pendaftaran->id) }}" method="POST">
+                @if(in_array(auth()->user()->role, ['admin', 'rekam_medis']) && $pendaftaran->satusehat_status !== 'success')
+                <form action="{{ route($r . 'satusehat.sync', $pendaftaran->id) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center">
                         <i class="fas fa-sync"></i> Sinkronisasi Ulang
@@ -200,7 +220,7 @@
 </div>
 
 <div style="margin-top:20px">
-    <a href="{{ route('admin.pendaftaran.index') }}" class="btn btn-outline">
+    <a href="{{ route($r . 'pendaftaran.index') }}" class="btn btn-outline">
         <i class="fas fa-arrow-left"></i> Kembali ke Daftar
     </a>
 </div>
