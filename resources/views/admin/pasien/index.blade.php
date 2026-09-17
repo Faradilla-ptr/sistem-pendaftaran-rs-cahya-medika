@@ -1,18 +1,17 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Master Data Pasien - RS Cahya Medika')
 @section('page-title', 'Master Data Pasien')
 
 @section('content')
-<div class="page-header">
-    <div>
-        <div class="page-header-title">Master Data Pasien</div>
-        <div class="page-header-sub">Daftar seluruh pasien yang terdaftar di RS Cahya Medika</div>
-    </div>
-</div>
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
+
+
 
 <div class="card" style="margin-bottom:18px">
     <div class="card-body" style="padding:14px 18px">
-        <form method="GET" action="{{ route('admin.pasien.index') }}">
+        <form method="GET" action="{{ route($r . 'pasien.index') }}">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
                 <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
                     <label style="font-size:11px;font-weight:600;color:#6b7280">Jenis Kelamin</label>
@@ -50,7 +49,7 @@
                 <div style="display:flex;gap:6px;align-self:flex-end">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Cari</button>
                     @if(request()->hasAny(['search','jenis_kelamin','bulan_kunjungan','tahun_kunjungan']))
-                        <a href="{{ route('admin.pasien.index') }}" class="btn btn-outline btn-sm">Reset</a>
+                        <a href="{{ route($r . 'pasien.index') }}" class="btn btn-outline btn-sm">Reset</a>
                     @endif
                 </div>
             </div>
@@ -92,8 +91,10 @@
                     <td><span class="badge badge-{{ $p->status==='aktif'?'success':'danger' }}">{{ ucfirst($p->status) }}</span></td>
                     <td>
                         <div style="display:flex;gap:5px">
-                            <a href="{{ route('admin.pasien.show', $p->id) }}" class="btn btn-outline btn-sm" title="Detail"><i class="fas fa-eye"></i></a>
-                            <a href="{{ route('admin.pasien.edit', $p->id) }}" class="btn btn-outline btn-sm" title="Edit"><i class="fas fa-pen-to-square"></i></a>
+                            <a href="{{ route($r . 'pasien.show', $p->id) }}" class="btn btn-outline btn-sm" title="Detail"><i class="fas fa-eye"></i></a>
+                            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+                            <a href="{{ route($r . 'pasien.edit', $p->id) }}" class="btn btn-outline btn-sm" title="Edit"><i class="fas fa-pen-to-square"></i></a>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -106,7 +107,7 @@
         </table>
     </div>
     @if($pasien->hasPages())
-    <div style="padding:14px 18px;border-top:1px solid #f3f4f6">{{ $pasien->withQueryString()->links() }}</div>
+    <div style="padding:14px 18px;border-top:1px solid #f3f4f6">{{ $pasien->withQueryString()->links('vendor.pagination.custom') }}</div>
     @endif
 </div>
 @endsection

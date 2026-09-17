@@ -1,14 +1,13 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Poliklinik & Kuota - RS Cahya Medika')
 @section('page-title', 'Poliklinik & Kuota')
 
 @section('content')
-<div class="page-header">
-    <div>
-        <div class="page-header-title">Poliklinik &amp; Kuota</div>
-        <div class="page-header-sub">Manajemen data poliklinik dan pengaturan kuota harian</div>
-    </div>
-</div>
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
+
+
 
 <div class="grid grid-2" style="gap:20px">
     {{-- DAFTAR POLI --}}
@@ -40,7 +39,8 @@
             <div class="card-title"><i class="fas fa-plus-circle" style="color:#1d4ed8"></i> Tambah Poliklinik Baru</div>
         </div>
         <div class="card-body">
-            <form action="{{ route('admin.poli.store') }}" method="POST">
+            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+            <form action="{{ route($r . 'poli.store') }}" method="POST">
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Nama Poliklinik *</label>
@@ -57,6 +57,12 @@
                 </div>
                 <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-plus"></i> Tambah Poliklinik</button>
             </form>
+            @else
+            <div style="padding:20px;text-align:center;color:#64748b;font-size:13px">
+                <i class="fas fa-lock" style="font-size:24px;color:#94a3b8;display:block;margin-bottom:10px"></i>
+                Mode Read-Only. Petugas Rekam Medis tidak memiliki akses untuk menambah Poliklinik baru.
+            </div>
+            @endif
         </div>
     </div>
 </div>

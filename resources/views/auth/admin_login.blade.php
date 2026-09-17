@@ -80,10 +80,13 @@
 
     <div class="card-container">
         <div class="header-brand">
-            <div class="logo-box">
-                <i class="fas fa-desktop"></i>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px">
+                <img src="{{ asset('logo.png') }}" alt="Logo RS Cahya Medika" style="height:42px;width:auto;object-fit:contain">
+                <div style="text-align:left">
+                    <div class="brand-title" style="font-size:16px;font-weight:800;color:#0f172a;line-height:1.2">RS Cahya Medika</div>
+                    <div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.4px">BONDOWOSO</div>
+                </div>
             </div>
-            <div class="brand-title">RS Cahya Medika</div>
             <div class="brand-sub">Front Office &amp; Loket Pendaftaran</div>
         </div>
 

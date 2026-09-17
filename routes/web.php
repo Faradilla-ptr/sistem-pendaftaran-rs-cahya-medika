@@ -148,7 +148,6 @@ Route::middleware(['auth', 'role:admin,pendaftaran'])->prefix('pendaftaran')->na
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
     Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
     Route::post('/pendaftaran/{pendaftaran}/settle-deposit', [AdminController::class, 'settleDeposit'])->name('pendaftaran.settle-deposit');
-    Route::post('/pendaftaran/{pendaftaran}/finalize-rekam-medis', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize-rekam-medis');
     Route::get('/api/lookup-booking', [AdminController::class, 'lookupBooking'])->name('api.lookup-booking');
     Route::patch('/pendaftaran/{pendaftaran}/status', [AdminController::class, 'pendaftaranUpdateStatus'])->name('pendaftaran.status');
     Route::post('/pendaftaran/{pendaftaran}/vital', [AdminController::class, 'pendaftaranUpdateVital'])->name('pendaftaran.vital');
@@ -164,13 +163,12 @@ Route::middleware(['auth', 'role:admin,pendaftaran'])->prefix('pendaftaran')->na
     Route::get('/poli', [AdminController::class, 'poliIndex'])->name('poli.index');
     Route::post('/poli', [AdminController::class, 'poliStore'])->name('poli.store');
 
-    // SatuSehat
+    // SatuSehat Status & Lookup
     Route::get('/satusehat', [AdminController::class, 'satusehatStatus'])->name('satusehat.status');
     Route::get('/satusehat/test-koneksi', [AdminController::class, 'satusehatTestKoneksi'])->name('satusehat.test');
     Route::get('/satusehat/cari-pasien',  [AdminController::class, 'satusehatCariPasien'])->name('satusehat.cari-pasien');
     Route::get('/satusehat/cari-dokter',  [AdminController::class, 'satusehatCariDokter'])->name('satusehat.cari-dokter');
     Route::get('/satusehat/cari-wilayah', [AdminController::class, 'satusehatCariWilayah'])->name('satusehat.wilayah');
-    Route::post('/satusehat/{pendaftaran}/sync', [AdminController::class, 'satusehatSync'])->name('satusehat.sync');
 
     // Chart AJAX
     Route::get('/api/chart-data', [AdminController::class, 'dashboardChartData'])->name('api.chart');
@@ -179,31 +177,30 @@ Route::middleware(['auth', 'role:admin,pendaftaran'])->prefix('pendaftaran')->na
     Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
     Route::get('/laporan/export-excel', [AdminController::class, 'laporanExportExcel'])->name('laporan.excel');
     Route::get('/laporan/export-pdf', [AdminController::class, 'laporanExportPdf'])->name('laporan.pdf');
+
+    // Profil
+    Route::get('/profil', [AdminController::class, 'profil'])->name('profil');
+    Route::put('/profil', [AdminController::class, 'updateProfil'])->name('profil.update');
 });
 
 // ==================== REKAM MEDIS ROUTES (PREFIX: rekam-medis/) ====================
 Route::middleware(['auth', 'role:admin,rekam_medis'])->prefix('rekam-medis')->name('rekam_medis.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
-    // Pasien & Rekam Medis
+    // Pasien & Rekam Medis (Read-Only)
     Route::get('/pasien', [AdminController::class, 'pasienIndex'])->name('pasien.index');
     Route::get('/pasien/{pasien}', [AdminController::class, 'pasienShow'])->name('pasien.show');
-    Route::get('/pasien/{pasien}/edit', [AdminController::class, 'pasienEdit'])->name('pasien.edit');
-    Route::put('/pasien/{pasien}', [AdminController::class, 'pasienUpdate'])->name('pasien.update');
 
-    // Pendaftaran & Antrean
+    // Pendaftaran & Antrean (Finalisasi & Cetak)
     Route::get('/pendaftaran', [AdminController::class, 'pendaftaranIndex'])->name('pendaftaran.index');
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
-    Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
-    Route::post('/pendaftaran/{pendaftaran}/settle-deposit', [AdminController::class, 'settleDeposit'])->name('pendaftaran.settle-deposit');
     Route::post('/pendaftaran/{pendaftaran}/finalize', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize');
     Route::post('/pendaftaran/{pendaftaran}/finalize-rekam-medis', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize-rekam-medis');
-    Route::patch('/pendaftaran/{pendaftaran}/status', [AdminController::class, 'pendaftaranUpdateStatus'])->name('pendaftaran.status');
     Route::post('/pendaftaran/{pendaftaran}/vital', [AdminController::class, 'pendaftaranUpdateVital'])->name('pendaftaran.vital');
 
-    // Dokter & Poli
+    // Dokter & Poli (Read-Only)
     Route::get('/dokter', [AdminController::class, 'dokterIndex'])->name('dokter.index');
     Route::get('/poli', [AdminController::class, 'poliIndex'])->name('poli.index');
 
@@ -220,10 +217,14 @@ Route::middleware(['auth', 'role:admin,rekam_medis'])->prefix('rekam-medis')->na
     Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
     Route::get('/laporan/export-excel', [AdminController::class, 'laporanExportExcel'])->name('laporan.excel');
     Route::get('/laporan/export-pdf', [AdminController::class, 'laporanExportPdf'])->name('laporan.pdf');
+
+    // Profil
+    Route::get('/profil', [AdminController::class, 'profil'])->name('profil');
+    Route::put('/profil', [AdminController::class, 'updateProfil'])->name('profil.update');
 });
 
-// ==================== BACKWARD COMPATIBLE ADMIN ROUTES (PREFIX: admin/) ====================
-Route::middleware(['auth', 'role:admin,pendaftaran,rekam_medis'])->prefix('admin')->name('admin.')->group(function () {
+// ==================== SUPER ADMIN EXCLUSIVE ROUTES (PREFIX: admin/) ====================
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/pasien', [AdminController::class, 'pasienIndex'])->name('pasien.index');
     Route::get('/pasien/{pasien}', [AdminController::class, 'pasienShow'])->name('pasien.show');
@@ -256,4 +257,8 @@ Route::middleware(['auth', 'role:admin,pendaftaran,rekam_medis'])->prefix('admin
     Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
     Route::get('/laporan/export-excel', [AdminController::class, 'laporanExportExcel'])->name('laporan.excel');
     Route::get('/laporan/export-pdf', [AdminController::class, 'laporanExportPdf'])->name('laporan.pdf');
+
+    // Profil
+    Route::get('/profil', [AdminController::class, 'profil'])->name('profil');
+    Route::put('/profil', [AdminController::class, 'updateProfil'])->name('profil.update');
 });

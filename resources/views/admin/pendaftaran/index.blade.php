@@ -3,19 +3,16 @@
 @section('page-title', 'Manajemen Antrean & Pendaftaran')
 
 @section('content')
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
 
-{{-- PAGE HEADER --}}
-<div class="page-header">
-    <div>
-        <div class="page-header-title">Manajemen Antrean &amp; Pendaftaran</div>
-        <div class="page-header-sub">Kelola semua data registrasi dan antrian pasien</div>
-    </div>
-</div>
+
 
 {{-- FILTER CARD --}}
 <div class="card" style="margin-bottom:18px">
     <div class="card-body" style="padding:14px 18px">
-        <form method="GET" action="{{ route('admin.pendaftaran.index') }}" id="filterForm">
+        <form method="GET" action="{{ route($r . 'pendaftaran.index') }}" id="filterForm">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
                 <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
                     <label style="font-size:11px;font-weight:600;color:#6b7280">Tanggal</label>
@@ -65,7 +62,7 @@
                 </div>
                 <div style="display:flex;gap:6px;align-self:flex-end">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filter</button>
-                    <a href="{{ route('admin.pendaftaran.index') }}" class="btn btn-outline btn-sm">Reset</a>
+                    <a href="{{ route($r . 'pendaftaran.index') }}" class="btn btn-outline btn-sm">Reset</a>
                 </div>
             </div>
         </form>
@@ -100,7 +97,9 @@
                     <th>Poli / Dokter</th>
                     <th>Tanggal &amp; Jam</th>
                     <th>Status Antrean</th>
+                    @if(auth()->user()->role !== 'pendaftaran')
                     <th>SatuSehat</th>
+                    @endif
                     <th style="width:160px">Aksi</th>
                 </tr>
             </thead>
@@ -108,9 +107,15 @@
                 @forelse($pendaftaran as $p)
                 <tr>
                     <td>
-                        <span style="display:inline-flex;width:34px;height:34px;background:{{ $p->no_antrian > 0 ? '#1e293b' : '#6b7280' }};color:white;border-radius:8px;align-items:center;justify-content:center;font-weight:700;font-size:12px">
-                            {{ $p->no_antrian > 0 ? '#'.$p->no_antrian : '-' }}
-                        </span>
+                        @if($p->no_antrian > 0)
+                            <span style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#0f172a;color:white;border-radius:8px;font-weight:800;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+                                <i class="fas fa-ticket" style="font-size:10px;color:#38bdf8"></i>#{{ $p->no_antrian }}
+                            </span>
+                        @else
+                            <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;font-size:11px" title="Nomor antrean diterbitkan saat check-in loket">
+                                <i class="fas fa-clock" style="font-size:10px;color:#0284c7"></i> Belum Check-in
+                            </span>
+                        @endif
                     </td>
                     <td>
                         <code style="background:#f3f4f6;padding:2px 7px;border-radius:5px;font-size:11px;color:#374151">{{ $p->kode_booking }}</code>
@@ -134,6 +139,7 @@
                         @if($p->status === 'terdaftar_online')
                             <span class="badge" style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;font-size:11px;padding:4px 8px"><i class="fas fa-laptop-house"></i> Online (Belum Check-in)</span>
                         @else
+                            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
                             <div style="display:flex;align-items:center;gap:6px">
                                 <select class="form-select" style="padding:4px 8px;font-size:11px;width:115px"
                                     onchange="updateStatus({{ $p->id }}, this.value)">
@@ -145,11 +151,17 @@
                                     <option value="batal" {{ $p->status==='batal'?'selected':'' }}>Batal</option>
                                 </select>
                             </div>
+                            @else
+                            <span class="badge badge-{{ $p->status === 'selesai' ? 'success' : ($p->status === 'batal' ? 'danger' : 'info') }}" style="font-size:11px;padding:4px 8px">
+                                {{ ucfirst(str_replace('_', ' ', $p->status)) }}
+                            </span>
+                            @endif
                         @endif
                         @if($p->deposit_awal > 0)
                             <div style="font-size:10px;color:#059669;margin-top:2px;font-weight:600"><i class="fas fa-wallet"></i> Depo: Rp {{ number_format((float)$p->deposit_awal, 0, ',', '.') }}</div>
                         @endif
                     </td>
+                    @if(auth()->user()->role !== 'pendaftaran')
                     <td>
                         @if($p->satusehat_status === 'success')
                             <span class="badge badge-success" style="font-size:10px;padding:3px 8px"><i class="fas fa-check-circle"></i> Terkirim 100%</span>
@@ -159,10 +171,11 @@
                             <span class="badge badge-warning" style="font-size:10px;padding:3px 8px"><i class="fas fa-clock"></i> In-Progress</span>
                         @endif
                     </td>
+                    @endif
                     <td>
                         <div style="display:flex;gap:4px;flex-wrap:wrap">
-                            @if($p->status === 'terdaftar_online')
-                                <form action="{{ route('admin.pendaftaran.checkin', $p->id) }}" method="POST" style="display:inline">
+                            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']) && $p->status === 'terdaftar_online')
+                                <form action="{{ route($r . 'pendaftaran.checkin', $p->id) }}" method="POST" style="display:inline">
                                     @csrf
                                     <button type="submit" class="btn btn-primary btn-sm" style="padding:3px 7px;font-size:11px" onclick="return confirm('Proses Check-in & Ambil No. Antrean untuk {{ $p->pasien->nama_lengkap ?? '' }}?')">
                                         <i class="fas fa-ticket-alt"></i> Check-in
@@ -170,18 +183,18 @@
                                 </form>
                             @endif
 
-                            <a href="{{ route('admin.pendaftaran.cetak-formulir', $p->id) }}" target="_blank" class="btn btn-outline btn-sm" title="Cetak Formulir Pasien" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:3px 7px;font-size:11px">
+                            <a href="{{ route($r . 'pendaftaran.cetak-formulir', $p->id) }}" target="_blank" class="btn btn-outline btn-sm" title="Cetak Formulir Pasien" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:3px 7px;font-size:11px">
                                 <i class="fas fa-print"></i> Form
                             </a>
 
-                            @if($p->status === 'pemeriksaan_selesai')
+                            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']) && $p->status === 'pemeriksaan_selesai')
                                 <button type="button" class="btn btn-warning btn-sm" style="padding:3px 7px;font-size:11px" onclick="openDepositModal({{ $p->id }}, {{ $p->deposit_awal }}, {{ $p->biaya_total }})">
                                     <i class="fas fa-hand-holding-usd"></i> Sisa Depo
                                 </button>
                             @endif
 
                             @if(in_array(auth()->user()->role, ['admin', 'rekam_medis']) && $p->status === 'proses_rekam_medis')
-                                <form action="{{ route('admin.pendaftaran.finalize-rekam-medis', $p->id) }}" method="POST" style="display:inline">
+                                <form action="{{ route($r . 'pendaftaran.finalize-rekam-medis', $p->id) }}" method="POST" style="display:inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm" style="padding:3px 7px;font-size:11px" onclick="return confirm('Kirim Finished status ke SatuSehat?')">
                                         <i class="fas fa-check-double"></i> Finalisasi
@@ -189,7 +202,7 @@
                                 </form>
                             @endif
 
-                            <a href="{{ route('admin.pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm" style="padding:3px 7px;font-size:11px" title="Detail">
+                            <a href="{{ route($r . 'pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm" style="padding:3px 7px;font-size:11px" title="Detail">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </div>
@@ -208,7 +221,7 @@
     </div>
     @if($pendaftaran->hasPages())
     <div style="padding:14px 18px;border-top:1px solid #f3f4f6">
-        {{ $pendaftaran->withQueryString()->links() }}
+        {{ $pendaftaran->withQueryString()->links('vendor.pagination.custom') }}
     </div>
     @endif
 </div>
@@ -243,11 +256,13 @@
 
 @push('scripts')
 <script>
+const routePrefix = '{{ auth()->user()->role === 'rekam_medis' ? '/rekam-medis' : (auth()->user()->role === 'pendaftaran' ? '/pendaftaran' : '/admin') }}';
+
 function clearBulanTahun(){ document.getElementById('inputBulan').value=''; document.getElementById('inputTahun').value=''; }
 function clearTanggal(){ document.getElementById('inputTanggal').value=''; }
 function updateStatus(id, status){
     if(!confirm('Ubah status menjadi: '+status+'?')) return;
-    fetch(`/admin/pendaftaran/${id}/status`, {
+    fetch(`${routePrefix}/pendaftaran/${id}/status`, {
         method:'PATCH',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'},
         body:JSON.stringify({status})
@@ -255,7 +270,7 @@ function updateStatus(id, status){
 }
 
 function openDepositModal(id, depositAwal, biayaTotal){
-    document.getElementById('depositForm').action = `/admin/pendaftaran/${id}/settle-deposit`;
+    document.getElementById('depositForm').action = `${routePrefix}/pendaftaran/${id}/settle-deposit`;
     document.getElementById('modalDepositAwal').value = depositAwal;
     document.getElementById('modalBiayaTotal').value = biayaTotal || 0;
     calcSisa();

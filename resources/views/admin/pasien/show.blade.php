@@ -3,13 +3,17 @@
 @section('page-title', 'Detail Pasien')
 
 @section('content')
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
+
 <div style="max-width:960px;margin:0 auto">
 
 <!-- BREADCRUMB -->
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:#64748b">
-    <a href="{{ route('admin.dashboard') }}" style="color:#0891b2;text-decoration:none">Dashboard</a>
+    <a href="{{ route($r . 'dashboard') }}" style="color:#0891b2;text-decoration:none">Dashboard</a>
     <i class="fas fa-chevron-right" style="font-size:10px"></i>
-    <a href="{{ route('admin.pasien.index') }}" style="color:#0891b2;text-decoration:none">Data Pasien</a>
+    <a href="{{ route($r . 'pasien.index') }}" style="color:#0891b2;text-decoration:none">Data Pasien</a>
     <i class="fas fa-chevron-right" style="font-size:10px"></i>
     <span>{{ $pasien->nama_lengkap }}</span>
 </div>
@@ -46,9 +50,11 @@
         </div>
     </div>
     <div style="display:flex;gap:10px;flex-shrink:0">
-        <a href="{{ route('admin.pasien.edit', $pasien->id) }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:white;border-color:rgba(255,255,255,0.2)">
+        @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+        <a href="{{ route($r . 'pasien.edit', $pasien->id) }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:white;border-color:rgba(255,255,255,0.2)">
             <i class="fas fa-edit"></i> Edit
         </a>
+        @endif
     </div>
 </div>
 
@@ -179,7 +185,7 @@
                     <div style="text-align:right">
                         <span class="badge badge-{{ $kunjungan->status_color }}" style="font-size:10px">{{ $kunjungan->status_label }}</span>
                         <div style="margin-top:4px">
-                            <a href="{{ route('admin.pendaftaran.show', $kunjungan->id) }}" style="font-size:11px;color:#0891b2;text-decoration:none">Detail</a>
+                            <a href="{{ route($r . 'pendaftaran.show', $kunjungan->id) }}" style="font-size:11px;color:#0891b2;text-decoration:none">Detail</a>
                         </div>
                     </div>
                 </div>
@@ -194,7 +200,7 @@
 </div>
 
 <div style="margin-top:20px">
-    <a href="{{ route('admin.pasien.index') }}" class="btn btn-outline">
+    <a href="{{ route($r . 'pasien.index') }}" class="btn btn-outline">
         <i class="fas fa-arrow-left"></i> Kembali ke Daftar
     </a>
 </div>

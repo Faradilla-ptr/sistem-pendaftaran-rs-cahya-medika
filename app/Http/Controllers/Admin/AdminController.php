@@ -121,11 +121,17 @@ class AdminController extends Controller
 
     public function pasienEdit(Pasien $pasien)
     {
+        if (auth()->user()->role === 'rekam_medis') {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
+        }
         return view('admin.pasien.edit', compact('pasien'));
     }
 
     public function pasienUpdate(Request $request, Pasien $pasien)
     {
+        if (auth()->user()->role === 'rekam_medis') {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
+        }
         $validator = Validator::make($request->all(), [
             'nama_lengkap' => 'required|string|max:255',
             'nik' => 'required|size:16|unique:pasien,nik,' . $pasien->id,
@@ -210,6 +216,9 @@ class AdminController extends Controller
 
     public function pendaftaranUpdateStatus(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis tidak berhak mengubah Status Kunjungan / Antrean.');
+        }
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:menunggu,dipanggil,selesai,batal',
         ]);
@@ -243,6 +252,9 @@ class AdminController extends Controller
 
     public function pendaftaranUpdateVital(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis tidak berhak mengubah Tanda Vital.');
+        }
         $pendaftaran->update([
             'tekanan_darah' => $request->tekanan_darah,
             'suhu'         => $request->suhu,
@@ -301,12 +313,18 @@ class AdminController extends Controller
 
     public function dokterCreate()
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $poli = Poli::where('is_active', true)->get();
         return view('admin.dokter.create', compact('poli'));
     }
 
     public function dokterStore(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
             'poli_id' => 'required|exists:poli,id',
@@ -348,12 +366,18 @@ class AdminController extends Controller
 
     public function dokterEdit(Dokter $dokter)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $poli = Poli::where('is_active', true)->get();
         return view('admin.dokter.edit', compact('dokter', 'poli'));
     }
 
     public function dokterUpdate(Request $request, Dokter $dokter)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $jadwal = [];
         $hariList = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
         foreach ($hariList as $hari) {
@@ -384,6 +408,9 @@ class AdminController extends Controller
 
     public function poliStore(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Poliklinik.');
+        }
         $validator = Validator::make($request->all(), [
             'kode' => 'required|string|unique:poli,kode',
             'nama' => 'required|string|max:255',
@@ -607,6 +634,9 @@ class AdminController extends Controller
 
     public function satusehatSync(Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'rekam_medis'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Rekam Medis / Admin yang dapat melakukan sinkronisasi SatuSehat.');
+        }
         $pasien = $pendaftaran->pasien;
         $dokter = $pendaftaran->dokter;
 
@@ -800,6 +830,9 @@ class AdminController extends Controller
 
     public function checkin(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Pendaftaran / Loket yang dapat melakukan Check-in dan transaksi deposit.');
+        }
         if ($pendaftaran->is_checkin) {
             return back()->with('info', 'Pasien sudah melakukan check-in sebelumnya. Nomor Antrean: ' . $pendaftaran->no_antrian);
         }
@@ -872,6 +905,9 @@ class AdminController extends Controller
 
     public function settleDeposit(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Pendaftaran / Loket yang dapat memproses transaksi settlement deposit.');
+        }
         $request->validate([
             'biaya_total' => 'required|numeric|min:0',
         ]);
@@ -895,6 +931,9 @@ class AdminController extends Controller
 
     public function finalizeRekamMedis(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'rekam_medis'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Rekam Medis / Admin yang dapat memfinalisasi berkas Rekam Medis.');
+        }
         $pendaftaran->update([
             'status' => 'selesai',
         ]);
@@ -908,5 +947,34 @@ class AdminController extends Controller
         }
 
         return back()->with('success', 'Berkas rekam medis ' . $pendaftaran->pasien->nama_lengkap . ' telah diverifikasi & disinkronisasi ke SatuSehat (Status: Finished).');
+    }
+
+    public function profil()
+    {
+        $user = auth()->user();
+        return view('admin.profil', compact('user'));
+    }
+
+    public function updateProfil(Request $request)
+    {
+        $user = auth()->user();
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $data = [
+            'name'  => $request->name,
+            'email' => $request->email,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return back()->with('success', 'Profil akun petugas berhasil diperbarui.');
     }
 }
