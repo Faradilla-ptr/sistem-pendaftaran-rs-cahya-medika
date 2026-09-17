@@ -108,10 +108,15 @@
                 @forelse($pendaftaran as $p)
                 <tr>
                     <td>
-                        <span style="display:inline-flex;width:30px;height:30px;background:#1e293b;color:white;border-radius:8px;align-items:center;justify-content:center;font-weight:700;font-size:12px">#{{ $p->no_antrian }}</span>
+                        <span style="display:inline-flex;width:34px;height:34px;background:{{ $p->no_antrian > 0 ? '#1e293b' : '#6b7280' }};color:white;border-radius:8px;align-items:center;justify-content:center;font-weight:700;font-size:12px">
+                            {{ $p->no_antrian > 0 ? '#'.$p->no_antrian : '-' }}
+                        </span>
                     </td>
                     <td>
                         <code style="background:#f3f4f6;padding:2px 7px;border-radius:5px;font-size:11px;color:#374151">{{ $p->kode_booking }}</code>
+                        @if($p->jarak_km)
+                            <div style="font-size:10px;color:#6b7280;margin-top:2px"><i class="fas fa-map-marker-alt" style="color:#ef4444"></i> {{ is_numeric($p->jarak_km) ? number_format((float)$p->jarak_km, 1) : $p->jarak_km }} km (~{{ $p->estimasi_menit }} mnt)</div>
+                        @endif
                     </td>
                     <td>
                         <div style="font-weight:600;font-size:13px">{{ $p->pasien->nama_lengkap ?? '-' }}</div>
@@ -126,15 +131,24 @@
                         <div style="font-size:11px;color:#9ca3af">{{ $p->jam_kunjungan }} WIB</div>
                     </td>
                     <td>
-                        <div style="display:flex;align-items:center;gap:6px">
-                            <select class="form-select" style="padding:4px 8px;font-size:11px;width:105px"
-                                onchange="updateStatus({{ $p->id }}, this.value)">
-                                <option value="menunggu" {{ $p->status==='menunggu'?'selected':'' }}>Menunggu</option>
-                                <option value="dipanggil" {{ $p->status==='dipanggil'?'selected':'' }}>Dipanggil</option>
-                                <option value="selesai" {{ $p->status==='selesai'?'selected':'' }}>Selesai</option>
-                                <option value="batal" {{ $p->status==='batal'?'selected':'' }}>Batal</option>
-                            </select>
-                        </div>
+                        @if($p->status === 'terdaftar_online')
+                            <span class="badge" style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;font-size:11px;padding:4px 8px"><i class="fas fa-laptop-house"></i> Online (Belum Check-in)</span>
+                        @else
+                            <div style="display:flex;align-items:center;gap:6px">
+                                <select class="form-select" style="padding:4px 8px;font-size:11px;width:115px"
+                                    onchange="updateStatus({{ $p->id }}, this.value)">
+                                    <option value="menunggu" {{ $p->status==='menunggu'?'selected':'' }}>Menunggu</option>
+                                    <option value="dipanggil" {{ $p->status==='dipanggil'?'selected':'' }}>Dipanggil</option>
+                                    <option value="pemeriksaan_selesai" {{ $p->status==='pemeriksaan_selesai'?'selected':'' }}>Pemeriksaan Selesai</option>
+                                    <option value="proses_rekam_medis" {{ $p->status==='proses_rekam_medis'?'selected':'' }}>Proses Rekam Medis</option>
+                                    <option value="selesai" {{ $p->status==='selesai'?'selected':'' }}>Selesai</option>
+                                    <option value="batal" {{ $p->status==='batal'?'selected':'' }}>Batal</option>
+                                </select>
+                            </div>
+                        @endif
+                        @if($p->deposit_awal > 0)
+                            <div style="font-size:10px;color:#059669;margin-top:2px;font-weight:600"><i class="fas fa-wallet"></i> Depo: Rp {{ number_format((float)$p->deposit_awal, 0, ',', '.') }}</div>
+                        @endif
                     </td>
                     <td>
                         @if($p->satusehat_status === 'success')
@@ -142,22 +156,42 @@
                         @elseif($p->satusehat_status === 'failed')
                             <span class="badge badge-danger" style="font-size:10px;padding:3px 8px"><i class="fas fa-exclamation-triangle"></i> Gagal</span>
                         @else
-                            <span class="badge badge-warning" style="font-size:10px;padding:3px 8px"><i class="fas fa-clock"></i> Pending</span>
+                            <span class="badge badge-warning" style="font-size:10px;padding:3px 8px"><i class="fas fa-clock"></i> In-Progress</span>
                         @endif
                     </td>
                     <td>
-                        <div style="display:flex;gap:4px;flex-wrap:nowrap">
-                            <a href="{{ route('admin.pendaftaran.pdf', $p->id) }}" target="_blank" class="btn btn-outline btn-sm" title="Cetak Formulir Identitas Pasien (PDF)" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2;padding:4px 8px;font-size:11px">
-                                <i class="fas fa-file-pdf"></i> Form
+                        <div style="display:flex;gap:4px;flex-wrap:wrap">
+                            @if($p->status === 'terdaftar_online')
+                                <form action="{{ route('admin.pendaftaran.checkin', $p->id) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-primary btn-sm" style="padding:3px 7px;font-size:11px" onclick="return confirm('Proses Check-in & Ambil No. Antrean untuk {{ $p->pasien->nama_lengkap ?? '' }}?')">
+                                        <i class="fas fa-ticket-alt"></i> Check-in
+                                    </button>
+                                </form>
+                            @endif
+
+                            <a href="{{ route('admin.pendaftaran.cetak-formulir', $p->id) }}" target="_blank" class="btn btn-outline btn-sm" title="Cetak Formulir Pasien" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:3px 7px;font-size:11px">
+                                <i class="fas fa-print"></i> Form
                             </a>
-                            <a href="{{ route('admin.pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:11px">
+
+                            @if($p->status === 'pemeriksaan_selesai')
+                                <button type="button" class="btn btn-warning btn-sm" style="padding:3px 7px;font-size:11px" onclick="openDepositModal({{ $p->id }}, {{ $p->deposit_awal }}, {{ $p->biaya_total }})">
+                                    <i class="fas fa-hand-holding-usd"></i> Sisa Depo
+                                </button>
+                            @endif
+
+                            @if(in_array(auth()->user()->role, ['admin', 'rekam_medis']) && $p->status === 'proses_rekam_medis')
+                                <form action="{{ route('admin.pendaftaran.finalize-rekam-medis', $p->id) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm" style="padding:3px 7px;font-size:11px" onclick="return confirm('Kirim Finished status ke SatuSehat?')">
+                                        <i class="fas fa-check-double"></i> Finalisasi
+                                    </button>
+                                </form>
+                            @endif
+
+                            <a href="{{ route('admin.pendaftaran.show', $p->id) }}" class="btn btn-outline btn-sm" style="padding:3px 7px;font-size:11px" title="Detail">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            @if($p->pasien)
-                            <a href="{{ route('admin.pasien.edit', $p->pasien->id) }}" class="btn btn-outline btn-sm" title="Edit Pasien / No. RM" style="padding:4px 8px;font-size:11px">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            @endif
                         </div>
                     </td>
                 </tr>
@@ -179,6 +213,32 @@
     @endif
 </div>
 
+{{-- MODAL SETTLE DEPOSIT --}}
+<div class="modal fade" id="depositModal" tabindex="-1" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:12px;width:100%;max-width:420px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,0.2)">
+        <h3 style="margin-top:0;font-size:16px;font-weight:700;color:#1e293b"><i class="fas fa-calculator" style="color:#d97706"></i> Hitung Sisa Deposit Pasien</h3>
+        <form id="depositForm" method="POST">
+            @csrf
+            <div style="margin-bottom:12px">
+                <label style="font-size:12px;font-weight:600">Deposit Awal (Rp)</label>
+                <input type="number" id="modalDepositAwal" class="form-control" readonly style="background:#f8fafc">
+            </div>
+            <div style="margin-bottom:12px">
+                <label style="font-size:12px;font-weight:600">Total Biaya Berobat / Dokter (Rp)</label>
+                <input type="number" name="biaya_total" id="modalBiayaTotal" class="form-control" required min="0" oninput="calcSisa()">
+            </div>
+            <div style="margin-bottom:16px;padding:12px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">
+                <div style="font-size:11px;color:#166534">Sisa Uang Deposit Dikembalikan ke Pasien:</div>
+                <div id="textSisaDeposit" style="font-size:18px;font-weight:800;color:#15803d">Rp 0</div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button type="button" class="btn btn-outline" onclick="closeDepositModal()">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Simpan & Kembalikan Deposit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -192,6 +252,25 @@ function updateStatus(id, status){
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'},
         body:JSON.stringify({status})
     }).then(r=>r.json()).then(d=>{ if(d.success) location.reload(); else alert('Gagal mengubah status'); });
+}
+
+function openDepositModal(id, depositAwal, biayaTotal){
+    document.getElementById('depositForm').action = `/admin/pendaftaran/${id}/settle-deposit`;
+    document.getElementById('modalDepositAwal').value = depositAwal;
+    document.getElementById('modalBiayaTotal').value = biayaTotal || 0;
+    calcSisa();
+    document.getElementById('depositModal').style.display = 'flex';
+}
+
+function closeDepositModal(){
+    document.getElementById('depositModal').style.display = 'none';
+}
+
+function calcSisa(){
+    let awal = parseFloat(document.getElementById('modalDepositAwal').value) || 0;
+    let biaya = parseFloat(document.getElementById('modalBiayaTotal').value) || 0;
+    let sisa = awal - biaya;
+    document.getElementById('textSisaDeposit').innerText = 'Rp ' + sisa.toLocaleString('id-ID');
 }
 </script>
 @endpush

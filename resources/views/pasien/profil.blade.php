@@ -155,7 +155,7 @@
                     <div class="form-group">
                         <label class="form-label">Tanggal Lahir *</label>
                         <input type="date" name="tanggal_lahir" class="form-control"
-                            value="{{ old('tanggal_lahir', optional($pasien->tanggal_lahir)->format('Y-m-d') ?? '') }}" required>
+                            value="{{ old('tanggal_lahir', ($pasien && $pasien->tanggal_lahir) ? (\Carbon\Carbon::parse($pasien->tanggal_lahir)->format('Y-m-d')) : '') }}" required>
                     </div>
 
                     <div class="form-group">
@@ -205,7 +205,7 @@
                     <div class="form-group">
                         <label class="form-label">No. Telepon / WhatsApp *</label>
                         <input type="text" name="no_hp" class="form-control {{ $errors->has('no_hp') ? 'is-invalid' : '' }}"
-                            value="{{ old('no_hp', $pasien->no_hp ?? '') }}" required placeholder="08xxxxxxxxxx">
+                            value="{{ old('no_hp', $pasien->no_hp ?? '') }}" maxlength="13" inputmode="numeric" oninput="formatAndValidatePhone(this)" required placeholder="08xxxxxxxxxx">
                         @error('no_hp')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -283,7 +283,8 @@
                     <div class="form-group">
                         <label class="form-label">No. Telepon PJ *</label>
                         <input type="text" name="no_hp_pj" class="form-control {{ $errors->has('no_hp_pj') ? 'is-invalid' : '' }}"
-                            value="{{ old('no_hp_pj', $pasien->no_hp_pj ?? '') }}" required placeholder="08xxxxxxxxxx">
+                            value="{{ old('no_hp_pj', $pasien->no_hp_pj ?? '') }}" maxlength="13" inputmode="numeric" oninput="formatAndValidatePhone(this)" required placeholder="08xxxxxxxxxx">
+                        @error('no_hp_pj')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="form-group">
@@ -704,6 +705,19 @@ function checkMatch() {
         msg.textContent = '✗ Password belum cocok';
         msg.style.color = '#dc2626';
     }
+}
+
+function formatAndValidatePhone(el) {
+    let val = el.value.replace(/\D/g, ''); // Disallow non-digits
+    if (val.startsWith('628')) {
+        val = '08' + val.slice(3);
+    } else if (val.startsWith('8')) {
+        val = '08' + val.slice(1);
+    }
+    if (val.length > 13) {
+        val = val.slice(0, 13);
+    }
+    el.value = val;
 }
 </script>
 @endpush

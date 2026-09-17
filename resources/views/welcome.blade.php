@@ -355,7 +355,7 @@ footer {
         <a href="#kontak">Kontak</a>
     </div>
     <div class="nav-actions">
-        <a href="{{ route('login') }}" class="btn-nav-ghost">Masuk</a>
+        <a href="{{ route('pasien.login') }}" class="btn-nav-ghost">Masuk</a>
         <a href="{{ route('register') }}" class="btn-nav-solid">Daftar Sekarang</a>
     </div>
 </nav>
@@ -378,7 +378,7 @@ footer {
                 <a href="{{ route('register') }}" class="btn-hero-primary">
                     <i class="fas fa-calendar-plus"></i> Daftar Berobat Online
                 </a>
-                <a href="{{ route('login') }}" class="btn-hero-secondary">
+                <a href="{{ route('pasien.login') }}" class="btn-hero-secondary">
                     <i class="fas fa-user-check"></i> Masuk Portal Pasien
                 </a>
             </div>
@@ -418,7 +418,7 @@ footer {
                         <div class="lq-poli">Poli Umum &amp; Spesialis</div>
                         <div class="lq-sub">Estimasi Tunggu: 5–10 Menit</div>
                     </div>
-                    <a href="{{ route('login') }}" class="lq-btn">
+                    <a href="{{ route('pasien.login') }}" class="lq-btn">
                         <i class="fas fa-ticket"></i> Cek Tiket
                     </a>
                 </div>
@@ -718,7 +718,7 @@ footer {
             <div>
                 <div class="ft-col-title">Portal Akses</div>
                 <div class="ft-links">
-                    <a href="{{ route('login') }}">Masuk Pasien</a>
+                    <a href="{{ route('pasien.login') }}">Masuk Pasien</a>
                     <a href="{{ route('admin.login') }}">Masuk Loket &amp; Admin</a>
                     <a href="{{ route('register') }}">Registrasi Pasien Baru</a>
                 </div>

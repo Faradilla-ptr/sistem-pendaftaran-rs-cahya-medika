@@ -23,7 +23,14 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 /** @var \App\Models\User $user */
                 $user = Auth::guard($guard)->user();
-                return $user->isAdmin() ? redirect()->route('admin.dashboard') : redirect()->route('pasien.dashboard');
+
+                if ($user->role === 'rekam_medis') {
+                    return redirect()->route('rekam_medis.dashboard');
+                }
+                if ($user->role === 'pendaftaran' || $user->role === 'admin') {
+                    return redirect()->route('pendaftaran.dashboard');
+                }
+                return redirect()->route('pasien.dashboard');
             }
         }
 

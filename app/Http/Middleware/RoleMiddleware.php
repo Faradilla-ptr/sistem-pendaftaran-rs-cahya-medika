@@ -11,29 +11,28 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, ...$roles): mixed
     {
         if (!Auth::check()) {
-            if ($request->is('admin') || $request->is('admin/*')) {
-                return redirect()->route('admin.login');
+            if ($request->is('rekam-medis*')) {
+                return redirect()->route('rekam_medis.login');
             }
-            return redirect()->route('login');
+            if ($request->is('pendaftaran*') || $request->is('admin*')) {
+                return redirect()->route('pendaftaran.login');
+            }
+            return redirect()->route('pasien.login');
         }
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (empty($roles)) {
-            return $next($request);
+        if (!empty($roles) && !in_array($user->role, $roles)) {
+            if ($user->role === 'rekam_medis') {
+                return redirect()->route('rekam_medis.dashboard');
+            }
+            if ($user->role === 'pendaftaran' || $user->role === 'admin') {
+                return redirect()->route('pendaftaran.dashboard');
+            }
+            return redirect()->route('pasien.dashboard');
         }
 
-        // Allow if user's exact role is allowed, or if 'admin' role is requested and user is an admin-type role (admin, pendaftaran, rekam_medis)
-        if (in_array($user->role, $roles) || (in_array('admin', $roles) && $user->isAdmin())) {
-            return $next($request);
-        }
-
-        // Instead of throwing a 403 error page, smoothly redirect user to their authorized dashboard
-        if ($user->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('info', 'Anda dialihkan ke Dashboard Admin / Loket.');
-        }
-
-        return redirect()->route('pasien.dashboard')->with('info', 'Anda dialihkan ke Dashboard Pasien.');
+        return $next($request);
     }
 }

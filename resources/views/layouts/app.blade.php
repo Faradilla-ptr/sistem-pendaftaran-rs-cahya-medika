@@ -166,54 +166,81 @@
     @stack('styles')
 </head>
 <body>
-@php $role = auth()->user()->role ?? 'pasien'; @endphp
+@php
+    $userRole = auth()->user()->role ?? 'pasien';
+    if (request()->is('pendaftaran*') || request()->is('admin*')) {
+        $role = 'pendaftaran';
+    } elseif (request()->is('rekam-medis*')) {
+        $role = 'rekam_medis';
+    } elseif (request()->is('pasien*')) {
+        $role = 'pasien';
+    } else {
+        $role = ($userRole === 'pendaftaran' || $userRole === 'admin') ? 'pendaftaran' : ($userRole === 'rekam_medis' ? 'rekam_medis' : 'pasien');
+    }
+@endphp
 <aside class="sidebar">
-    <div class="sb-logo">
-        <div class="sb-logo-icon">
-            <i class="fas fa-hospital"></i>
-        </div>
-        <div class="sb-logo-text">
-            <div class="name">RS Cahya Medika</div>
-            <div class="sub">Sistem Pendaftaran RM</div>
-        </div>
+    <div class="sb-logo" style="padding:16px 20px;display:flex;align-items:center;justify-content:center">
+        <img src="{{ asset('logo.png') }}" alt="Logo RS Cahya Medika" style="max-height:48px;width:auto;object-fit:contain">
     </div>
     <div class="sb-role-badge {{ $role }}">
         <i class="fas fa-{{ $role === 'pasien' ? 'user' : ($role === 'rekam_medis' ? 'file-medical' : 'desktop') }}"></i>
         @if($role==='admin') ADMIN (SUPER ADMIN)
-        @elseif($role==='pendaftaran') PENDAFTARAN (SUPER ADMIN)
+        @elseif($role==='pendaftaran') PENDAFTARAN (LOKET)
         @elseif($role==='rekam_medis') REKAM MEDIS
         @else PORTAL PASIEN
         @endif
     </div>
     <nav class="sb-nav">
-        @if(auth()->user()->isAdmin())
+        @if($role === 'rekam_medis')
+        <div class="sb-section">
+            <div class="sb-section-title">Rekam Medis</div>
+            <a href="{{ route('rekam_medis.dashboard') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-gauge-high"></i> Dashboard Rekam Medis
+            </a>
+            <a href="{{ route('rekam_medis.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pendaftaran*') ? 'active' : '' }}">
+                <i class="fas fa-file-medical"></i> Data Berobat & Antrean
+            </a>
+            <a href="{{ route('rekam_medis.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.pasien*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i> Data Pasien & No. RM
+            </a>
+        </div>
+        <div class="sb-section">
+            <div class="sb-section-title">Integrasi & Pelaporan</div>
+            <a href="{{ route('rekam_medis.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.satusehat*') ? 'active' : '' }}">
+                <i class="fas fa-link"></i> SatuSehat API
+            </a>
+            <a href="{{ route('rekam_medis.laporan') }}" class="sb-nav-item {{ request()->routeIs('rekam_medis.laporan*') ? 'active' : '' }}">
+                <i class="fas fa-chart-bar"></i> Laporan Rekam Medis
+            </a>
+        </div>
+        @elseif($role === 'pendaftaran' || $role === 'admin')
         <div class="sb-section">
             <div class="sb-section-title">Pendaftaran & Loket</div>
-            <a href="{{ route('admin.dashboard') }}" class="sb-nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.dashboard') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dashboard') || request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-gauge-high"></i> Dashboard Loket
             </a>
-            <a href="{{ route('admin.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('admin.pendaftaran*') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.pendaftaran.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pendaftaran*') || request()->routeIs('admin.pendaftaran*') ? 'active' : '' }}">
                 <i class="fas fa-list-check"></i> Antrean & Registrasi
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Master Data Hospital</div>
-            <a href="{{ route('admin.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('admin.pasien*') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.pasien.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.pasien*') || request()->routeIs('admin.pasien*') ? 'active' : '' }}">
                 <i class="fas fa-users"></i> Master Data Pasien
             </a>
-            <a href="{{ route('admin.dokter.index') }}" class="sb-nav-item {{ request()->routeIs('admin.dokter*') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.dokter.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.dokter*') || request()->routeIs('admin.dokter*') ? 'active' : '' }}">
                 <i class="fas fa-user-doctor"></i> Dokter Spesialis
             </a>
-            <a href="{{ route('admin.poli.index') }}" class="sb-nav-item {{ request()->routeIs('admin.poli*') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.poli.index') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.poli*') || request()->routeIs('admin.poli*') ? 'active' : '' }}">
                 <i class="fas fa-hospital"></i> Poliklinik & Kuota
             </a>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Pelaporan Loket</div>
-            <a href="{{ route('admin.laporan') }}" class="sb-nav-item {{ request()->routeIs('admin.laporan') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.laporan') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.laporan*') || request()->routeIs('admin.laporan*') ? 'active' : '' }}">
                 <i class="fas fa-chart-bar"></i> Sensus Harian Loket
             </a>
-            <a href="{{ route('admin.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('admin.satusehat*') ? 'active' : '' }}">
+            <a href="{{ route('pendaftaran.satusehat.status') }}" class="sb-nav-item {{ request()->routeIs('pendaftaran.satusehat*') || request()->routeIs('admin.satusehat*') ? 'active' : '' }}">
                 <i class="fas fa-link"></i> SatuSehat API
             </a>
         </div>
@@ -247,6 +274,30 @@
     <header class="topbar">
         <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
         <div class="topbar-right">
+            @php
+                $notifCount = 0;
+                $notifTitle = '';
+                $notifMsg = '';
+                if ($role === 'pendaftaran') {
+                    $notifCount = \App\Models\Pendaftaran::where('status', 'terdaftar_online')->whereDate('tanggal_kunjungan', '>=', today())->count();
+                    $notifTitle = 'Pendaftaran Online Baru';
+                    $notifMsg = "$notifCount pasien mendaftar online & menunggu check-in di loket.";
+                } elseif ($role === 'rekam_medis') {
+                    $notifCount = \App\Models\Pendaftaran::whereIn('status', ['proses_rekam_medis', 'pemeriksaan_selesai'])->count();
+                    $notifTitle = 'Berkas RM Siap Finalisasi';
+                    $notifMsg = "$notifCount berkas pendaftaran siap diverifikasi ke SatuSehat.";
+                }
+            @endphp
+
+            @if($notifCount > 0)
+            <div class="notif-wrapper" style="position:relative">
+                <button type="button" class="btn" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;border-radius:10px;position:relative;cursor:pointer" onclick="Swal.fire('{{ $notifTitle }}', '{{ $notifMsg }}', 'info')">
+                    <i class="fas fa-bell" style="color:#0284c7;font-size:15px"></i>
+                    <span style="position:absolute;top:-5px;right:-5px;background:#dc2626;color:white;font-size:10px;font-weight:800;border-radius:99px;padding:2px 6px;line-height:1">{{ $notifCount }}</span>
+                </button>
+            </div>
+            @endif
+
             <div class="topbar-date">
                 <i class="fas fa-calendar-days"></i>
                 {{ now()->locale('id')->isoFormat('ddd, D MMM Y') }}

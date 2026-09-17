@@ -87,7 +87,7 @@ class AuthController extends Controller
             'nama_lengkap'  => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email',
             'password'      => 'required|min:8|confirmed',
-            'no_hp'         => 'required|string|max:15',
+            'no_hp'         => 'required|string|regex:/^08[0-9]{8,11}$/',
             'nik'           => 'required|string|size:16|unique:pasien,nik',
             'tanggal_lahir' => 'required|date|before:today',
             'jenis_kelamin' => 'required|in:L,P',
@@ -101,6 +101,7 @@ class AuthController extends Controller
             'password.min'           => 'Password minimal 8 karakter',
             'password.confirmed'     => 'Konfirmasi password tidak cocok',
             'no_hp.required'         => 'No HP wajib diisi',
+            'no_hp.regex'            => 'No HP harus diawali dengan 08 dan terdiri dari 10-13 angka',
             'nik.required'           => 'NIK wajib diisi',
             'nik.size'               => 'NIK harus 16 digit',
             'nik.unique'             => 'NIK sudah terdaftar',
@@ -157,8 +158,12 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if (in_array($role, ['admin', 'pendaftaran', 'rekam_medis'])) {
-            return redirect()->route('admin.login')->with('success', 'Anda berhasil keluar.');
+        if ($role === 'rekam_medis') {
+            return redirect()->route('rekam_medis.login')->with('success', 'Anda berhasil keluar dari Rekam Medis.');
+        }
+
+        if ($role === 'pendaftaran' || $role === 'admin') {
+            return redirect()->route('pendaftaran.login')->with('success', 'Anda berhasil keluar dari Loket Pendaftaran.');
         }
 
         return redirect()->route('login')->with('success', 'Anda berhasil keluar.');
@@ -169,8 +174,14 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        return $user->isAdmin()
-            ? redirect()->route('admin.dashboard')
-            : redirect()->route('pasien.dashboard');
+        if ($user->role === 'rekam_medis') {
+            return redirect()->route('rekam_medis.dashboard');
+        }
+
+        if ($user->role === 'pendaftaran' || $user->role === 'admin') {
+            return redirect()->route('pendaftaran.dashboard');
+        }
+
+        return redirect()->route('pasien.dashboard');
     }
 }
