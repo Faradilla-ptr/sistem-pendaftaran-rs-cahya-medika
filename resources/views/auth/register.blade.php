@@ -182,7 +182,7 @@
                     <label>No. HP / WhatsApp <span class="req">*</span></label>
                     <div class="input-wrap">
                         <i class="fas fa-phone input-icon"></i>
-                        <input type="tel" name="no_hp" class="{{ $errors->has('no_hp')?'is-invalid':'' }}" placeholder="08xxxxxxxxxx" value="{{ old('no_hp') }}" required>
+                        <input type="tel" name="no_hp" id="inputNoHp" class="{{ $errors->has('no_hp')?'is-invalid':'' }}" placeholder="08xxxxxxxxxx" value="{{ old('no_hp') }}" maxlength="13" inputmode="numeric" oninput="formatAndValidatePhone(this)" required>
                     </div>
                 </div>
             </div>
@@ -235,11 +235,23 @@
         </form>
 
         <div class="form-footer">
-            Sudah punya akun pasien? <a href="{{ route('login') }}">Login Pasien &rarr;</a>
+            Sudah punya akun pasien? <a href="{{ route('pasien.login') }}">Login Pasien &rarr;</a>
         </div>
     </div>
 
 <script>
+function formatAndValidatePhone(el) {
+    let val = el.value.replace(/\D/g, '');
+    if (val.startsWith('628')) {
+        val = '08' + val.slice(3);
+    } else if (val.startsWith('8')) {
+        val = '08' + val.slice(1);
+    }
+    if (val.length > 13) {
+        val = val.slice(0, 13);
+    }
+    el.value = val;
+}
 function togglePwd(id, iconId){
     var inp=document.getElementById(id);
     var ic=document.getElementById(iconId);

@@ -1,6 +1,9 @@
+@php
+    $isRM = request()->is('rekam-medis*');
+@endphp
 @extends('layouts.app')
-@section('title', 'Dashboard Pendaftaran - RS Cahya Medika')
-@section('page-title', 'Dashboard Pendaftaran & Loket')
+@section('title', $isRM ? 'Dashboard Rekam Medis - RS Cahya Medika' : 'Dashboard Pendaftaran - RS Cahya Medika')
+@section('page-title', $isRM ? 'Dashboard Rekam Medis' : 'Dashboard Pendaftaran & Loket')
 
 @section('content')
 
@@ -8,22 +11,53 @@
 <div style="background:white;border:1px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03)">
     <div style="display:flex;align-items:center;gap:16px">
         <div style="width:48px;height:48px;background:#f8fafc;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#0f172a;flex-shrink:0;border:1px solid #e2e8f0">
-            <i class="fas fa-clipboard-list"></i>
+            <i class="fas fa-{{ $isRM ? 'file-medical' : 'clipboard-list' }}"></i>
         </div>
         <div>
-            <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:2px">Panel Pendaftaran &amp; Antrean Loket</div>
+            <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:2px">{{ $isRM ? 'Panel Rekam Medis & Riwayat Pasien' : 'Panel Pendaftaran & Antrean Loket' }}</div>
             <div style="font-size:12px;color:#64748b">RS Cahya Medika Bondowoso &middot; {{ now()->locale('id')->isoFormat('dddd, D MMMM Y') }}</div>
             <div style="display:flex;gap:8px;margin-top:8px">
+                @if($isRM)
+                <span style="background:#f8fafc;color:#334155;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0"><i class="fas fa-user-shield" style="margin-right:5px;color:#0284c7"></i>Staf Rekam Medis</span>
+                <span style="background:#f8fafc;color:#334155;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0"><i class="fas fa-database" style="margin-right:5px;color:#059669"></i>Unit Rekam Medis</span>
+                @else
                 <span style="background:#f8fafc;color:#334155;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0"><i class="fas fa-user-shield" style="margin-right:5px;color:#2563eb"></i>Super Admin Pendaftaran</span>
                 <span style="background:#f8fafc;color:#334155;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0"><i class="fas fa-desktop" style="margin-right:5px;color:#0d9488"></i>Loket Front Office</span>
+                @endif
             </div>
         </div>
     </div>
     <div style="text-align:right;flex-shrink:0;background:#f8fafc;padding:10px 18px;border-radius:10px;border:1px solid #e2e8f0">
         <div style="font-size:24px;font-weight:800;color:#0f172a;line-height:1;font-family:monospace">{{ now()->format('H:i') }}</div>
-        <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:500">Waktu Loket</div>
+        <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:500">{{ $isRM ? 'Waktu Rekam Medis' : 'Waktu Loket' }}</div>
     </div>
 </div>
+
+{{-- QUICK LOOKUP & CHECK-IN CARD FOR LOKET --}}
+@if(!$isRM)
+<div class="card" style="margin-bottom:22px;border:1.5px solid #0284c7;background:#f0f9ff;border-radius:14px;box-shadow:0 4px 14px rgba(2,132,199,0.08)">
+    <div class="card-body" style="padding:18px 22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:42px;height:42px;background:#0284c7;color:white;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#0f172a">Ambil No. Antrean & Check-in Loket Pasien</div>
+                    <div style="font-size:11.5px;color:#475569">Scan QR Barcode Tiket atau ketik Kode Booking / Nama / NIK Pasien.</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;flex:1;max-width:440px">
+                <input type="text" id="lookupInputCode" class="form-control" placeholder="Contoh: CM-20260917-0012 / Nama / NIK" style="border:1.5px solid #0284c7;font-family:monospace;font-size:13px" onkeypress="if(event.key==='Enter') executeBookingLookup()">
+                <button type="button" class="btn" style="background:#0284c7;color:white;font-weight:700;padding:8px 16px;white-space:nowrap" onclick="executeBookingLookup()">
+                    <i class="fas fa-search"></i> Cari / Check-in
+                </button>
+            </div>
+        </div>
+        <div id="lookupResultArea" style="display:none;margin-top:16px;padding:14px;background:white;border:1px solid #bae6fd;border-radius:10px"></div>
+    </div>
+</div>
+@endif
 
 {{-- STATS ROW --}}
 <div class="grid grid-4" style="margin-bottom:22px">
@@ -256,5 +290,48 @@ function loadChartData() {
         }).catch(e=>console.error(e)).finally(()=>{document.getElementById('chartLoading').style.display='none';});
 }
 loadChartData();
+
+function executeBookingLookup() {
+    const code = document.getElementById('lookupInputCode').value.trim();
+    if (!code) {
+        Swal.fire('Perhatian', 'Masukkan kode booking, nama, atau NIK pasien.', 'warning');
+        return;
+    }
+    const area = document.getElementById('lookupResultArea');
+    area.style.display = 'block';
+    area.innerHTML = '<div style="color:#0284c7;font-size:13px"><i class="fas fa-spinner fa-spin"></i> Mencari data booking pasien...</div>';
+
+    fetch(`{{ route('pendaftaran.api.lookup-booking') }}?code=${encodeURIComponent(code)}`)
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.data) {
+                const d = res.data;
+                const p = d.pasien || {};
+                const poli = d.poli || {};
+                const dr = d.dokter || {};
+                let checkinBtn = d.is_checkin ? `<span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:6px 12px;border-radius:6px;font-weight:700">Sudah Check-in (Antrean #${d.no_antrian})</span>` : `<form action="/pendaftaran/pendaftaran/${d.id}/checkin" method="POST" style="display:inline">@csrf<button type="submit" class="btn" style="background:#059669;color:white;font-weight:700;font-size:12px;padding:8px 14px"><i class="fas fa-check-circle"></i> Check-in & Ambil No. Antrean (Deposit Rp 200rb)</button></form>`;
+                let printBtn = `<a href="/pendaftaran/pendaftaran/${d.id}/cetak-formulir" target="_blank" class="btn" style="font-weight:700;font-size:12px;border:1px solid #0284c7;color:#0284c7;padding:8px 14px"><i class="fas fa-print"></i> Cetak Formulir Pendaftaran</a>`;
+
+                area.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+                        <div>
+                            <div style="font-size:15px;font-weight:800;color:#0f172a">${p.nama_lengkap || '-'} (NIK: ${p.nik || '-'})</div>
+                            <div style="font-size:12px;color:#64748b;margin-top:2px">Kode Booking: <strong>${d.kode_booking}</strong> &middot; Poli: <strong>${poli.nama || '-'}</strong> &middot; Dokter: <strong>${dr.nama_lengkap || '-'}</strong></div>
+                            <div style="font-size:12px;color:#0369a1;margin-top:4px"><i class="fas fa-route"></i> Estimasi Jarak Tempuh Pasien: <strong>${d.jarak_km || '3.5 km'}</strong> (&plusmn; ${d.estimasi_menit || 12} Menit)</div>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            ${checkinBtn}
+                            ${printBtn}
+                        </div>
+                    </div>
+                `;
+            } else {
+                area.innerHTML = `<div style="color:#dc2626;font-size:13px"><i class="fas fa-triangle-exclamation"></i> ${res.message || 'Pendaftaran tidak ditemukan.'}</div>`;
+            }
+        })
+        .catch(e => {
+            area.innerHTML = '<div style="color:#dc2626;font-size:13px"><i class="fas fa-exclamation-circle"></i> Gagal terhubung ke server.</div>';
+        });
+}
 </script>
 @endpush

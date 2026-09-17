@@ -119,7 +119,7 @@
         <div class="alert-success"><i class="fas fa-circle-check"></i>{{ session('success') }}</div>
         @endif
 
-        <form action="{{ route('login.post') }}" method="POST">
+        <form action="{{ route('pasien.login.post') }}" method="POST">
             @csrf
             <div class="fg">
                 <label>Email Pasien</label>
