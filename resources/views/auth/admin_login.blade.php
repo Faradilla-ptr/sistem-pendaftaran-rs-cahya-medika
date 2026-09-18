@@ -28,16 +28,16 @@
         }
         .card-container::before {
             content:''; position:absolute; top:0; left:32px; right:32px; height:4px;
-            background:linear-gradient(90deg, #0f172a, #1e40af);
+            background:linear-gradient(90deg, #0D3B66, #1F4E79);
             border-radius:4px 4px 0 0;
         }
 
-        .header-brand { text-align:center; margin-bottom:24px; }
+        .header-brand { text-align:center; margin-bottom:28px; }
         .logo-box {
             width:48px; height:48px; border-radius:14px;
-            background:linear-gradient(135deg, #0f172a, #1e40af);
+            background:linear-gradient(135deg, #0D3B66, #1F4E79);
             color:white; font-size:20px; display:flex; align-items:center; justify-content:center;
-            margin:0 auto 12px; box-shadow:0 6px 16px rgba(30, 64, 175, 0.25);
+            margin:0 auto 12px; box-shadow:0 6px 16px rgba(13, 59, 102, 0.25);
         }
         .brand-title { font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; }
         .brand-sub { font-size:12px; color:#64748b; margin-top:2px; font-weight:500; }
@@ -55,19 +55,19 @@
         .fg input {
             width:100%; padding:11px 14px 11px 40px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:13px; font-family:inherit; color:#0f172a; background:white; transition:all 0.15s;
         }
-        .fg input:focus { outline:none; border-color:#1e40af; box-shadow:0 0 0 3.5px rgba(30, 64, 175, 0.1); }
+        .fg input:focus { outline:none; border-color:#3B7A99; box-shadow:0 0 0 3.5px rgba(59, 122, 153, 0.15); }
         .fg input.is-invalid { border-color:#dc2626; }
         .pwd-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#94a3b8; cursor:pointer; font-size:13px; border:none; background:none; padding:4px; }
-        .pwd-eye:hover { color:#1e40af; }
+        .pwd-eye:hover { color:#1F4E79; }
 
         .btn-submit {
-            width:100%; padding:12px; background:linear-gradient(135deg, #0f172a 0%, #1e40af 100%); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(30, 64, 175, 0.25); display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px;
+            width:100%; padding:12px; background:linear-gradient(135deg, #0D3B66 0%, #1F4E79 100%); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(13, 59, 102, 0.25); display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px;
         }
-        .btn-submit:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 20px rgba(30, 64, 175, 0.35); }
+        .btn-submit:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 20px rgba(13, 59, 102, 0.35); }
 
         /* DEMO ACCOUNT CARD BUTTON */
         .demo-card-btn {
-            width:100%; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
+            width:100%; background:#f0f7fc; border:1px solid #A4C8E1; border-radius:12px;
             padding:12px 14px; margin-top:22px; cursor:pointer; text-align:left;
             transition:all 0.2s; font-family:inherit; display:block;
         }

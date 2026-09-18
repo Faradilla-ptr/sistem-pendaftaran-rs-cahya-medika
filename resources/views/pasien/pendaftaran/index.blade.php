@@ -3,12 +3,9 @@
 @section('page-title', 'Pendaftaran Saya')
 
 @section('content')
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-    <div>
-        <h2 style="font-size:18px;font-weight:800;color:#0c4a6e">Daftar Pendaftaran</h2>
-        <p style="font-size:13px;color:#64748b">Semua riwayat pendaftaran berobat Anda</p>
-    </div>
-    <a href="{{ route('pasien.pendaftaran.create') }}" class="btn btn-accent">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div style="font-size:13px;color:var(--text-muted)">Semua tiket &amp; antrean berobat aktif Anda</div>
+    <a href="{{ route('pasien.pendaftaran.create') }}" class="btn btn-primary btn-sm">
         <i class="fas fa-plus"></i> Daftar Berobat Baru
     </a>
 </div>

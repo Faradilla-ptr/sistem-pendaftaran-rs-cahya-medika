@@ -12,12 +12,19 @@
 /* ─── RESET & BASE ─────────────────────────────────────── */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 :root {
-    --primary:       #0284c7;
-    --primary-dark:  #0369a1;
-    --navy:          #0f172a;
-    --navy-card:     #1e293b;
-    --teal:          #0d9488;
-    --emerald:       #059669;
+    /* 5 PALETTE COLORS */
+    --palette-soft:   #A4C8E1; /* Soft Ice Blue */
+    --palette-light:  #6FA3D8; /* Sky Ocean Blue */
+    --palette-medium: #3B7A99; /* Steel Teal Blue */
+    --palette-deep:   #1F4E79; /* Deep Classic Navy */
+    --palette-dark:   #0D3B66; /* Midnight Ocean Navy */
+
+    --primary:       #1F4E79;
+    --primary-dark:  #0D3B66;
+    --navy:          #0D3B66;
+    --navy-card:     #1F4E79;
+    --teal:          #3B7A99;
+    --emerald:       #3B7A99;
     --slate:         #334155;
     --muted:         #64748b;
     --light-bg:      #f8fafc;
@@ -25,7 +32,7 @@
     --border:        #e2e8f0;
     --shadow-sm:     0 2px 8px rgba(15, 23, 42, 0.04);
     --shadow-card:   0 12px 32px -6px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-    --shadow-hover:  0 22px 50px -10px rgba(2, 132, 199, 0.2), 0 8px 20px -4px rgba(15, 23, 42, 0.08);
+    --shadow-hover:  0 22px 50px -10px rgba(13, 59, 102, 0.2), 0 8px 20px -4px rgba(15, 23, 42, 0.08);
 }
 html { scroll-behavior: smooth; }
 body { font-family:'Plus Jakarta Sans',sans-serif; color:var(--navy); background:#f8fafc; line-height:1.6; font-size:14px; overflow-x:hidden; width:100%; }

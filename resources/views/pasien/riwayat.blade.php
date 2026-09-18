@@ -1,19 +1,12 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Riwayat Kunjungan - Portal Pasien RS Cahya Medika')
 @section('page-title', 'Riwayat Kunjungan')
 
 @section('content')
-<div class="page-header">
-    <div>
-        <div class="page-header-title">Riwayat Kunjungan</div>
-        <div class="page-header-sub">Semua riwayat kunjungan berobat Anda</div>
-    </div>
-</div>
-
 <div class="card">
     <div class="card-header">
-        <div class="card-title"><i class="fas fa-clock-rotate-left" style="color:#16a34a"></i> Daftar Riwayat Kunjungan</div>
-        <span style="font-size:12px;color:#6b7280">{{ isset($riwayat) ? $riwayat->count() : 0 }} kunjungan</span>
+        <div class="card-title"><i class="fas fa-clock-rotate-left" style="color:var(--palette-medium);margin-right:6px"></i> Riwayat Kunjungan Berobat</div>
+        <span class="badge badge-primary" style="font-size:12px">{{ isset($riwayat) ? $riwayat->count() : 0 }} Kunjungan</span>
     </div>
     <div class="table-responsive">
         <table>
