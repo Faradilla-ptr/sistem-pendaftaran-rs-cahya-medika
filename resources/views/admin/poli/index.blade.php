@@ -1,93 +1,68 @@
 @extends('layouts.app')
-@section('title', 'Data Poli - RS Cahya Medika')
-@section('page-title', 'Poli / Klinik')
+@section('title', 'Poliklinik & Kuota - RS Cahya Medika')
+@section('page-title', 'Poliklinik & Kuota')
 
 @section('content')
-<div class="grid grid-2" style="gap:24px;align-items:start">
+@php 
+    $r = auth()->user()->role === 'rekam_medis' ? 'rekam_medis.' : (auth()->user()->role === 'pendaftaran' ? 'pendaftaran.' : 'admin.'); 
+@endphp
 
-    <!-- DAFTAR POLI -->
-    <div>
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">🏥 Daftar Poli</div>
-                <span style="font-size:12px;color:#94a3b8">{{ $poli->total() }} poli</span>
-            </div>
-            <div class="card-body" style="padding:0">
-                @forelse($poli as $p)
-                <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:14px">
-                    <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:{{ $p->warna ?? '#e0f2fe' }}22;border:2px solid {{ $p->warna ?? '#e0f2fe' }}">
-                        {{ $p->icon ?? '🏥' }}
-                    </div>
-                    <div style="flex:1">
-                        <div style="font-weight:700;font-size:14px;color:#0c4a6e">{{ $p->nama }}</div>
-                        <div style="font-size:11px;color:#94a3b8">
-                            Kode: <strong>{{ $p->kode }}</strong> &nbsp;·&nbsp;
-                            {{ $p->lantai ?? 'Lantai 1' }} &nbsp;·&nbsp;
-                            {{ $p->jam_buka }} - {{ $p->jam_tutup }}
-                        </div>
-                        <div style="font-size:11px;color:#64748b;margin-top:2px">
-                            👨‍⚕️ {{ $p->dokter_count }} dokter &nbsp;·&nbsp; 📋 {{ $p->pendaftaran_count }} kunjungan
-                        </div>
-                    </div>
+
+
+<div class="grid grid-2" style="gap:20px">
+    {{-- DAFTAR POLI --}}
+    <div class="card" style="height:fit-content">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-hospital" style="color:#16a34a"></i> Daftar Poliklinik Aktif</div>
+        </div>
+        <div>
+            @forelse($poli ?? [] as $p)
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #f9fafb">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:36px;height:36px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px">🏥</div>
                     <div>
-                        <span class="badge badge-{{ $p->is_active ? 'success' : 'danger' }}">
-                            {{ $p->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </span>
+                        <div style="font-weight:700;font-size:13px">{{ $p->nama }}</div>
+                        <div style="font-size:11px;color:#9ca3af">Kuota: {{ $p->kuota_per_hari ?? '-' }} pasien/hari</div>
                     </div>
                 </div>
-                @empty
-                <div style="padding:40px;text-align:center;color:#94a3b8">Belum ada poli</div>
-                @endforelse
+                <span class="badge badge-{{ $p->is_active ? 'success' : 'danger' }}">{{ $p->is_active ? 'Aktif' : 'Nonaktif' }}</span>
             </div>
+            @empty
+            <div style="padding:36px;text-align:center;color:#9ca3af;font-size:13px">Belum ada data poliklinik</div>
+            @endforelse
         </div>
     </div>
 
-    <!-- FORM TAMBAH POLI -->
-    <div>
-        <div class="card">
-            <div class="card-header"><div class="card-title">➕ Tambah Poli Baru</div></div>
-            <div class="card-body">
-                <form action="{{ route('admin.poli.store') }}" method="POST">
-                    @csrf
-                    <div class="form-group">
-                        <label class="form-label">Kode Poli *</label>
-                        <input type="text" name="kode" class="form-control {{ $errors->has('kode') ? 'is-invalid' : '' }}"
-                            value="{{ old('kode') }}" placeholder="UMUM, ANAK, BEDAH..." required style="text-transform:uppercase">
-                        @error('kode')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Nama Poli *</label>
-                        <input type="text" name="nama" class="form-control {{ $errors->has('nama') ? 'is-invalid' : '' }}"
-                            value="{{ old('nama') }}" required placeholder="Poli Umum, Poli Anak...">
-                        @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Deskripsi</label>
-                        <textarea name="deskripsi" class="form-control" rows="2" placeholder="Keterangan singkat poli ini...">{{ old('deskripsi') }}</textarea>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                        <div class="form-group">
-                            <label class="form-label">Lantai</label>
-                            <input type="text" name="lantai" class="form-control" value="{{ old('lantai','Lantai 1') }}">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Icon (emoji)</label>
-                            <input type="text" name="icon" class="form-control" value="{{ old('icon','🏥') }}" placeholder="🏥">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Jam Buka</label>
-                            <input type="time" name="jam_buka" class="form-control" value="{{ old('jam_buka','07:30') }}">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Jam Tutup</label>
-                            <input type="time" name="jam_tutup" class="form-control" value="{{ old('jam_tutup','14:00') }}">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">
-                        <i class="fas fa-plus"></i> Tambah Poli
-                    </button>
-                </form>
+    {{-- TAMBAH POLI FORM --}}
+    <div class="card" style="height:fit-content">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-plus-circle" style="color:#1d4ed8"></i> Tambah Poliklinik Baru</div>
+        </div>
+        <div class="card-body">
+            @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
+            <form action="{{ route($r . 'poli.store') }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Nama Poliklinik *</label>
+                    <input type="text" name="nama" class="form-control {{ $errors->has('nama')?'is-invalid':'' }}" value="{{ old('nama') }}" placeholder="contoh: Poli Penyakit Dalam" required>
+                    @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kuota Per Hari</label>
+                    <input type="number" name="kuota_per_hari" class="form-control" value="{{ old('kuota_per_hari', 20) }}" min="1" max="200">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Keterangan</label>
+                    <textarea name="keterangan" class="form-control" placeholder="Keterangan singkat poliklinik..." rows="3">{{ old('keterangan') }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-plus"></i> Tambah Poliklinik</button>
+            </form>
+            @else
+            <div style="padding:20px;text-align:center;color:#64748b;font-size:13px">
+                <i class="fas fa-lock" style="font-size:24px;color:#94a3b8;display:block;margin-bottom:10px"></i>
+                Mode Read-Only. Petugas Rekam Medis tidak memiliki akses untuk menambah Poliklinik baru.
             </div>
+            @endif
         </div>
     </div>
 </div>

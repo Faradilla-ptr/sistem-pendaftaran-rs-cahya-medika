@@ -19,7 +19,6 @@ class AdminController extends Controller
     public function __construct(SatuSehatService $satuSehat)
     {
         $this->satuSehat = $satuSehat;
-        $this->middleware(['auth', 'role:admin']);
     }
 
     public function dashboard()
@@ -122,18 +121,26 @@ class AdminController extends Controller
 
     public function pasienEdit(Pasien $pasien)
     {
+        if (auth()->user()->role === 'rekam_medis') {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
+        }
         return view('admin.pasien.edit', compact('pasien'));
     }
 
     public function pasienUpdate(Request $request, Pasien $pasien)
     {
+        if (auth()->user()->role === 'rekam_medis') {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
+        }
         $validator = Validator::make($request->all(), [
             'nama_lengkap' => 'required|string|max:255',
             'nik' => 'required|size:16|unique:pasien,nik,' . $pasien->id,
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:L,P',
-            'no_hp' => 'required|string|max:15',
+            'no_hp' => 'nullable|string|regex:/^08[0-9]{8,11}$/',
             'alamat' => 'nullable|string',
+        ], [
+            'no_hp.regex' => 'Nomor HP harus diawali 08 dan berjumlah 10-13 angka.',
         ]);
 
         if ($validator->fails()) {
@@ -190,8 +197,28 @@ class AdminController extends Controller
         return view('admin.pendaftaran.show', compact('pendaftaran'));
     }
 
+    public function pendaftaranCetakPdf(Pendaftaran $pendaftaran)
+    {
+        $pendaftaran->load(['pasien', 'dokter', 'poli']);
+        $pasien = $pendaftaran->pasien;
+
+        if (!$pasien) {
+            return back()->withErrors(['error' => 'Data pasien tidak ditemukan.']);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.formulir_identitas_pasien', [
+            'pasien' => $pasien,
+            'pendaftaran' => $pendaftaran,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("Formulir_Identitas_Pasien_{$pasien->no_rm}.pdf");
+    }
+
     public function pendaftaranUpdateStatus(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis tidak berhak mengubah Status Kunjungan / Antrean.');
+        }
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:menunggu,dipanggil,selesai,batal',
         ]);
@@ -205,6 +232,17 @@ class AdminController extends Controller
             'catatan_admin' => $request->catatan_admin ?? $pendaftaran->catatan_admin,
         ]);
 
+        // Sync encounter status update to SatuSehat
+        if ($pendaftaran->satusehat_encounter_id) {
+            $ssStatus = match($request->status) {
+                'dipanggil' => 'in-progress',
+                'selesai'   => 'finished',
+                'batal'     => 'cancelled',
+                default     => 'arrived'
+            };
+            $this->satuSehat->updateEncounterStatus($pendaftaran->satusehat_encounter_id, $ssStatus);
+        }
+
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Status berhasil diperbarui']);
         }
@@ -214,17 +252,38 @@ class AdminController extends Controller
 
     public function pendaftaranUpdateVital(Request $request, Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis tidak berhak mengubah Tanda Vital.');
+        }
         $pendaftaran->update([
             'tekanan_darah' => $request->tekanan_darah,
-            'suhu' => $request->suhu,
-            'nadi' => $request->nadi,
-            'respirasi' => $request->respirasi,
-            'berat_badan' => $request->berat_badan,
+            'suhu'         => $request->suhu,
+            'nadi'         => $request->nadi,
+            'respirasi'    => $request->respirasi,
+            'berat_badan'  => $request->berat_badan,
             'tinggi_badan' => $request->tinggi_badan,
-            'spo2' => $request->spo2,
+            'spo2'         => $request->spo2,
         ]);
 
-        return back()->with('success', 'Tanda vital berhasil disimpan.');
+        // Auto sync vital signs (Observation) ke SatuSehat jika Encounter sudah terbuat
+        $pasien = $pendaftaran->pasien;
+        if ($pendaftaran->satusehat_encounter_id && $pasien && $pasien->satusehat_id) {
+            $this->satuSehat->syncVitalSigns([
+                'patient_id'   => $pasien->satusehat_id,
+                'encounter_id' => $pendaftaran->satusehat_encounter_id,
+                'vitals'       => [
+                    'tekanan_darah' => $pendaftaran->tekanan_darah,
+                    'suhu'          => $pendaftaran->suhu,
+                    'nadi'          => $pendaftaran->nadi,
+                    'respirasi'     => $pendaftaran->respirasi,
+                    'berat_badan'   => $pendaftaran->berat_badan,
+                    'tinggi_badan'  => $pendaftaran->tinggi_badan,
+                    'spo2'          => $pendaftaran->spo2,
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'Tanda vital berhasil disimpan & dikirim ke SatuSehat.');
     }
 
     // ======== DOKTER MANAGEMENT ========
@@ -254,12 +313,18 @@ class AdminController extends Controller
 
     public function dokterCreate()
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $poli = Poli::where('is_active', true)->get();
         return view('admin.dokter.create', compact('poli'));
     }
 
     public function dokterStore(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
             'poli_id' => 'required|exists:poli,id',
@@ -301,12 +366,18 @@ class AdminController extends Controller
 
     public function dokterEdit(Dokter $dokter)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $poli = Poli::where('is_active', true)->get();
         return view('admin.dokter.edit', compact('dokter', 'poli'));
     }
 
     public function dokterUpdate(Request $request, Dokter $dokter)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Dokter.');
+        }
         $jadwal = [];
         $hariList = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
         foreach ($hariList as $hari) {
@@ -337,6 +408,9 @@ class AdminController extends Controller
 
     public function poliStore(Request $request)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki hak akses Lihat (Read-Only) pada Data Poliklinik.');
+        }
         $validator = Validator::make($request->all(), [
             'kode' => 'required|string|unique:poli,kode',
             'nama' => 'required|string|max:255',
@@ -560,6 +634,9 @@ class AdminController extends Controller
 
     public function satusehatSync(Pendaftaran $pendaftaran)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'rekam_medis'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Rekam Medis / Admin yang dapat melakukan sinkronisasi SatuSehat.');
+        }
         $pasien = $pendaftaran->pasien;
         $dokter = $pendaftaran->dokter;
 
@@ -567,54 +644,19 @@ class AdminController extends Controller
             return back()->withErrors(['error' => 'Data pasien tidak ditemukan.']);
         }
 
-        // Pastikan pasien punya SatuSehat ID
-        if (!$pasien->satusehat_id) {
-            $ssPatient = $this->satuSehat->getOrCreatePatient([
-                'nik'           => $pasien->nik,
-                'nama_lengkap'  => $pasien->nama_lengkap,
-                'no_hp'         => $pasien->no_hp,
-                'jenis_kelamin' => $pasien->jenis_kelamin,
-                'tanggal_lahir' => $pasien->tanggal_lahir
-                    ? $pasien->tanggal_lahir->format('Y-m-d') : null,
-                'alamat'        => $pasien->alamat,
-                'kabupaten'     => $pasien->kabupaten,
-                'kode_pos'      => $pasien->kode_pos,
-            ]);
-
-            if (!empty($ssPatient['success']) && !empty($ssPatient['data']['id'])) {
-                $pasien->update(['satusehat_id' => $ssPatient['data']['id']]);
-                $pasien->refresh();
-            } else {
-                return back()->withErrors(['error' => 'Gagal mendaftarkan pasien ke SatuSehat. Cek log untuk detail.']);
-            }
-        }
-
-        $encounterData = [
-            'patient_id'        => $pasien->satusehat_id,
-            'nama_pasien'       => $pasien->nama_lengkap,
-            'dokter_id'         => $dokter->satusehat_id ?? '',
-            'nama_dokter'       => $dokter ? $dokter->nama_lengkap : '',
-            'tanggal_kunjungan' => $pendaftaran->tanggal_kunjungan->format('Y-m-d'),
-            'jam_kunjungan'     => $pendaftaran->jam_kunjungan,
-            'keluhan'           => $pendaftaran->keluhan,
-            'kode_booking'      => $pendaftaran->kode_booking,
-            'nama_poli'         => $pendaftaran->poli->nama ?? 'Rawat Jalan',
-        ];
-
-        $response = $this->satuSehat->createEncounter($encounterData);
-
-        if (!empty($response['success'])) {
-            $pendaftaran->update([
-                'satusehat_encounter_id' => $response['data']['id'] ?? null,
-                'satusehat_response'     => $response['data'],
-                'satusehat_status'       => 'success',
-            ]);
-            return back()->with('success', 'Sinkronisasi SatuSehat berhasil.');
-        }
-
-        return back()->withErrors([
-            'error' => 'Sinkronisasi Encounter gagal: ' . ($response['error'] ?? 'Unknown error'),
+        $res = $this->satuSehat->syncFullEncounter([
+            'pasien'      => $pasien,
+            'pendaftaran' => $pendaftaran,
+            'dokter'      => $dokter,
         ]);
+
+        if (!empty($res['success'])) {
+            $msg = 'Berhasil sinkronisasi 4 data SatuSehat (Encounter, Condition, Observation Vital Signs, Encounter Update Status)!';
+            return back()->with('success', $msg);
+        } else {
+            $pendaftaran->update(['satusehat_status' => 'failed']);
+            return back()->withErrors(['error' => $res['error'] ?? 'Gagal sinkronisasi ke SatuSehat. Cek log untuk detail.']);
+        }
     }
 
     // ======== LAPORAN ========
@@ -784,5 +826,190 @@ class AdminController extends Controller
         $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
 
         return view('admin.laporan-pdf', compact('data', 'byPoli', 'byStatus', 'bulan', 'tahun', 'namabulan'));
+    }
+
+    public function checkin(Request $request, Pendaftaran $pendaftaran)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Pendaftaran / Loket yang dapat melakukan Check-in dan transaksi deposit.');
+        }
+        if ($pendaftaran->is_checkin) {
+            return back()->with('info', 'Pasien sudah melakukan check-in sebelumnya. Nomor Antrean: ' . $pendaftaran->no_antrian);
+        }
+
+        // Update patient identity if edited by loket/pendaftaran staff
+        if ($pendaftaran->pasien) {
+            $pasienUpdate = [];
+            if ($request->filled('pasien_nik'))               $pasienUpdate['nik']               = $request->pasien_nik;
+            if ($request->filled('pasien_nama_lengkap'))      $pasienUpdate['nama_lengkap']      = $request->pasien_nama_lengkap;
+            if ($request->filled('pasien_tempat_lahir'))      $pasienUpdate['tempat_lahir']      = $request->pasien_tempat_lahir;
+            if ($request->filled('pasien_tanggal_lahir'))     $pasienUpdate['tanggal_lahir']     = $request->pasien_tanggal_lahir;
+            if ($request->filled('pasien_jenis_kelamin'))     $pasienUpdate['jenis_kelamin']     = $request->pasien_jenis_kelamin;
+            if ($request->filled('pasien_pekerjaan'))         $pasienUpdate['pekerjaan']         = $request->pasien_pekerjaan;
+            if ($request->filled('pasien_agama'))             $pasienUpdate['agama']             = $request->pasien_agama;
+            if ($request->filled('pasien_pendidikan'))        $pasienUpdate['pendidikan']        = $request->pasien_pendidikan;
+            if ($request->filled('pasien_status_pernikahan')) $pasienUpdate['status_pernikahan'] = $request->pasien_status_pernikahan;
+            if ($request->filled('pasien_warga_negara'))      $pasienUpdate['warga_negara']      = $request->pasien_warga_negara;
+            if ($request->filled('pasien_golongan_darah'))    $pasienUpdate['golongan_darah']    = $request->pasien_golongan_darah;
+            if ($request->filled('pasien_nama_ibu'))          $pasienUpdate['nama_ibu']          = $request->pasien_nama_ibu;
+            if ($request->filled('pasien_nama_ayah'))         $pasienUpdate['nama_ayah']         = $request->pasien_nama_ayah;
+            if ($request->filled('pasien_no_hp'))             $pasienUpdate['no_hp']             = $request->pasien_no_hp;
+            if ($request->filled('pasien_alamat'))            $pasienUpdate['alamat']            = $request->pasien_alamat;
+            if ($request->filled('pasien_provinsi'))          $pasienUpdate['provinsi']          = $request->pasien_provinsi;
+            if ($request->filled('pasien_kabupaten'))         $pasienUpdate['kabupaten']         = $request->pasien_kabupaten;
+            if ($request->filled('pasien_kecamatan'))         $pasienUpdate['kecamatan']         = $request->pasien_kecamatan;
+            if ($request->filled('pasien_kelurahan'))         $pasienUpdate['kelurahan']         = $request->pasien_kelurahan;
+
+            if (!empty($pasienUpdate)) {
+                $pendaftaran->pasien->update($pasienUpdate);
+            }
+        }
+
+        $noAntrian = Pendaftaran::generateNoAntrian($pendaftaran->poli_id, $pendaftaran->tanggal_kunjungan->format('Y-m-d'));
+
+        $pendaftaran->update([
+            'no_antrian'        => $noAntrian,
+            'is_checkin'        => true,
+            'waktu_checkin'     => now(),
+            'status'            => 'menunggu',
+            'deposit_awal'      => $request->deposit_awal ?? 200000.00,
+            'tekanan_darah'     => $request->tekanan_darah ?? $pendaftaran->tekanan_darah,
+            'suhu'              => $request->suhu ?? $pendaftaran->suhu,
+            'nadi'              => $request->nadi ?? $pendaftaran->nadi,
+            'respirasi'         => $request->respirasi ?? $pendaftaran->respirasi,
+            'berat_badan'       => $request->berat_badan ?? $pendaftaran->berat_badan,
+            'tinggi_badan'      => $request->tinggi_badan ?? $pendaftaran->tinggi_badan,
+            'spo2'              => $request->spo2 ?? $pendaftaran->spo2,
+        ]);
+
+        // Triggers Stage 1 SatuSehat (In Progress)
+        if ($pendaftaran->pasien && $pendaftaran->pasien->satusehat_id) {
+            try {
+                $encounterData = [
+                    'patient_id'        => $pendaftaran->pasien->satusehat_id,
+                    'nama_pasien'       => $pendaftaran->pasien->nama_lengkap,
+                    'dokter_id'         => $pendaftaran->dokter->satusehat_id ?? '',
+                    'nama_dokter'       => $pendaftaran->dokter->nama_lengkap,
+                    'tanggal_kunjungan' => $pendaftaran->tanggal_kunjungan->format('Y-m-d'),
+                    'jam_kunjungan'     => $pendaftaran->jam_kunjungan,
+                    'keluhan'           => $pendaftaran->keluhan,
+                    'kode_booking'      => $pendaftaran->kode_booking,
+                    'nama_poli'         => $pendaftaran->poli->nama ?? 'Rawat Jalan',
+                ];
+                $ssResponse = $this->satuSehat->createEncounter($encounterData);
+                if (!empty($ssResponse['success'])) {
+                    $pendaftaran->update([
+                        'satusehat_encounter_id' => $ssResponse['data']['id'] ?? null,
+                        'satusehat_response'     => $ssResponse['data'],
+                        'satusehat_status'       => 'success',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Ignore exception if sandbox offline
+            }
+        }
+
+        return back()->with('success', "Check-in berhasil! Nomor Antrean " . ($pendaftaran->poli->kode ?? 'A') . "-" . sprintf('%03d', $noAntrian) . " telah diterbitkan. Deposit Rp 200.000 telah diterima.");
+    }
+
+    public function lookupBooking(Request $request)
+    {
+        $code = trim($request->code);
+        $pendaftaran = Pendaftaran::with(['pasien', 'poli', 'dokter'])
+            ->where('kode_booking', $code)
+            ->orWhere('qr_code_data', $code)
+            ->orWhereHas('pasien', function ($q) use ($code) {
+                $q->where('nama_lengkap', 'like', "%{$code}%")
+                  ->orWhere('nik', $code);
+            })
+            ->latest()
+            ->first();
+
+        if (!$pendaftaran) {
+            return response()->json(['success' => false, 'message' => 'Pendaftaran / Pasien tidak ditemukan.'], 404);
+        }
+
+        return response()->json(['success' => true, 'data' => $pendaftaran]);
+    }
+
+    public function cetakFormulir(Pendaftaran $pendaftaran)
+    {
+        $pendaftaran->load(['pasien', 'poli', 'dokter']);
+        return view('admin.pendaftaran.cetak_formulir', compact('pendaftaran'));
+    }
+
+    public function settleDeposit(Request $request, Pendaftaran $pendaftaran)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Pendaftaran / Loket yang dapat memproses transaksi settlement deposit.');
+        }
+        $request->validate([
+            'biaya_total' => 'required|numeric|min:0',
+        ]);
+
+        $biayaTotal = (float) $request->biaya_total;
+        $depositAwal = (float) ($pendaftaran->deposit_awal ?? 200000);
+        $sisaDeposit = $depositAwal - $biayaTotal;
+
+        $pendaftaran->update([
+            'biaya_total'  => $biayaTotal,
+            'sisa_deposit' => $sisaDeposit,
+            'status'       => 'proses_rekam_medis',
+        ]);
+
+        $msg = $sisaDeposit >= 0 
+            ? "Penyelesaian deposit berhasil! Sisa deposit dikembalikan ke pasien: Rp " . number_format($sisaDeposit, 0, ',', '.')
+            : "Penyelesaian deposit berhasil! Kekurangan biaya yang dibayar pasien: Rp " . number_format(abs($sisaDeposit), 0, ',', '.');
+
+        return back()->with('success', $msg);
+    }
+
+    public function finalizeRekamMedis(Request $request, Pendaftaran $pendaftaran)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'rekam_medis'])) {
+            abort(403, 'Akses Ditolak: Hanya Petugas Rekam Medis / Admin yang dapat memfinalisasi berkas Rekam Medis.');
+        }
+        $pendaftaran->update([
+            'status' => 'selesai',
+        ]);
+
+        if ($pendaftaran->satusehat_encounter_id) {
+            try {
+                $this->satuSehat->updateEncounterStatus($pendaftaran->satusehat_encounter_id, 'finished');
+            } catch (\Exception $e) {
+                // Ignore exception if sandbox offline
+            }
+        }
+
+        return back()->with('success', 'Berkas rekam medis ' . $pendaftaran->pasien->nama_lengkap . ' telah diverifikasi & disinkronisasi ke SatuSehat (Status: Finished).');
+    }
+
+    public function profil()
+    {
+        $user = auth()->user();
+        return view('admin.profil', compact('user'));
+    }
+
+    public function updateProfil(Request $request)
+    {
+        $user = auth()->user();
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $data = [
+            'name'  => $request->name,
+            'email' => $request->email,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return back()->with('success', 'Profil akun petugas berhasil diperbarui.');
     }
 }

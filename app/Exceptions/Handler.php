@@ -26,5 +26,13 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->is('login') || $request->is('*/login')) {
+                return redirect()->back()->withInput($request->except('password', '_token'))
+                    ->withErrors(['email' => 'Sesi login telah diperbarui. Silakan klik Masuk kembali.']);
+            }
+            return redirect()->back()->withErrors(['error' => 'Sesi Anda telah kedaluwarsa. Silakan muat ulang halaman.']);
+        });
     }
 }
