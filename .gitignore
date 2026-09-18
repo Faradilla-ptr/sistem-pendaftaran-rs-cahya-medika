@@ -17,3 +17,26 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Skripsi & Dokumen Privat
+PANDUAN_IMPLEMENTASI_SKRIPSI.md
+PRD_Sistem_Pendaftaran_Rekam_Medis.md
+Laporan_Analisis_SatuSehat_HTTP400.md
+transkrip_wawancara_rekam_medis.pdf
+database_schema.sql
+pallete warna.jpeg
+contoh_payload_satusehat_fhir.json
+test.php
+/scratch/
+
+# Wildcards Dokumen & Skripsi
+*.docx
+*.doc
+*.pdf
+*.pptx
+*.xlsx
+*skripsi*
+*SKRIPSI*
+*wawancara*
+*WAWANCARA*
+
