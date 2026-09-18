@@ -187,22 +187,32 @@ Route::middleware(['auth', 'role:admin,pendaftaran'])->prefix('pendaftaran')->na
 Route::middleware(['auth', 'role:admin,rekam_medis'])->prefix('rekam-medis')->name('rekam_medis.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
-    // Pasien & Rekam Medis (Read-Only)
+    // Pasien & Rekam Medis
     Route::get('/pasien', [AdminController::class, 'pasienIndex'])->name('pasien.index');
     Route::get('/pasien/{pasien}', [AdminController::class, 'pasienShow'])->name('pasien.show');
+    Route::get('/pasien/{pasien}/edit', [AdminController::class, 'pasienEdit'])->name('pasien.edit');
+    Route::put('/pasien/{pasien}', [AdminController::class, 'pasienUpdate'])->name('pasien.update');
 
     // Pendaftaran & Antrean (Finalisasi & Cetak)
     Route::get('/pendaftaran', [AdminController::class, 'pendaftaranIndex'])->name('pendaftaran.index');
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
+    Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
+    Route::get('/api/lookup-booking', [AdminController::class, 'lookupBooking'])->name('api.lookup-booking');
+    Route::patch('/pendaftaran/{pendaftaran}/status', [AdminController::class, 'pendaftaranUpdateStatus'])->name('pendaftaran.status');
     Route::post('/pendaftaran/{pendaftaran}/finalize', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize');
     Route::post('/pendaftaran/{pendaftaran}/finalize-rekam-medis', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize-rekam-medis');
     Route::post('/pendaftaran/{pendaftaran}/vital', [AdminController::class, 'pendaftaranUpdateVital'])->name('pendaftaran.vital');
 
-    // Dokter & Poli (Read-Only)
+    // Dokter & Poli
     Route::get('/dokter', [AdminController::class, 'dokterIndex'])->name('dokter.index');
+    Route::get('/dokter/tambah', [AdminController::class, 'dokterCreate'])->name('dokter.create');
+    Route::post('/dokter', [AdminController::class, 'dokterStore'])->name('dokter.store');
+    Route::get('/dokter/{dokter}/edit', [AdminController::class, 'dokterEdit'])->name('dokter.edit');
+    Route::put('/dokter/{dokter}', [AdminController::class, 'dokterUpdate'])->name('dokter.update');
     Route::get('/poli', [AdminController::class, 'poliIndex'])->name('poli.index');
+    Route::post('/poli', [AdminController::class, 'poliStore'])->name('poli.store');
 
     // SatuSehat
     Route::get('/satusehat', [AdminController::class, 'satusehatStatus'])->name('satusehat.status');
