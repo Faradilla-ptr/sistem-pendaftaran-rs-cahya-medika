@@ -40,16 +40,16 @@
         }
         .card-container::before {
             content:''; position:absolute; top:0; left:36px; right:36px; height:4px;
-            background:linear-gradient(90deg, #059669, #0284c7);
+            background:linear-gradient(90deg, #0D3B66, #1F4E79);
             border-radius:4px 4px 0 0;
         }
 
         .header-brand { text-align:center; margin-bottom:24px; }
         .logo-box {
             width:48px; height:48px; border-radius:14px;
-            background:linear-gradient(135deg, #059669, #0284c7);
+            background:linear-gradient(135deg, #0D3B66, #1F4E79);
             color:white; font-size:20px; display:flex; align-items:center; justify-content:center;
-            margin:0 auto 12px; box-shadow:0 6px 16px rgba(2, 132, 199, 0.25);
+            margin:0 auto 12px; box-shadow:0 6px 16px rgba(13, 59, 102, 0.25);
         }
         .brand-title { font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; }
         .brand-sub { font-size:12px; color:#64748b; margin-top:2px; font-weight:500; }
@@ -64,7 +64,7 @@
             display:flex; align-items:center; gap:10px; margin-bottom:16px; margin-top:8px;
         }
         .stp-icon {
-            width:28px; height:28px; border-radius:8px; background:#eff6ff; color:#0284c7;
+            width:28px; height:28px; border-radius:8px; background:#f0f7fc; color:#1F4E79;
             display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;
         }
         .stp-text { font-size:12.5px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:0.5px; }
@@ -82,21 +82,21 @@
             width:100%; padding:11px 14px 11px 40px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:13px; font-family:inherit; color:#0f172a; background:white; transition:all 0.15s;
         }
         .fg input.no-ico, .fg select.no-ico { padding-left:14px; }
-        .fg input:focus, .fg select:focus { outline:none; border-color:#0284c7; box-shadow:0 0 0 3.5px rgba(2, 132, 199, 0.1); }
+        .fg input:focus, .fg select:focus { outline:none; border-color:#3B7A99; box-shadow:0 0 0 3.5px rgba(59, 122, 153, 0.15); }
         .fg input.is-invalid, .fg select.is-invalid { border-color:#dc2626; }
         .pwd-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#94a3b8; cursor:pointer; font-size:13px; border:none; background:none; padding:4px; }
-        .pwd-eye:hover { color:#0284c7; }
+        .pwd-eye:hover { color:#1F4E79; }
 
         .agree-wrap {
             background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-top:10px; margin-bottom:20px; display:flex; align-items:flex-start; gap:10px; cursor:pointer;
         }
-        .agree-wrap input { margin-top:2px; accent-color:#0284c7; cursor:pointer; }
+        .agree-wrap input { margin-top:2px; accent-color:#1F4E79; cursor:pointer; }
         .agree-text { font-size:12px; color:#475569; line-height:1.5; }
 
         .btn-submit {
-            width:100%; padding:14px; background:linear-gradient(135deg, #059669 0%, #0284c7 100%); color:white; border:none; border-radius:12px; font-size:14.5px; font-weight:800; font-family:inherit; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(2, 132, 199, 0.25); display:flex; align-items:center; justify-content:center; gap:8px;
+            width:100%; padding:14px; background:linear-gradient(135deg, #0D3B66 0%, #1F4E79 100%); color:white; border:none; border-radius:12px; font-size:14.5px; font-weight:800; font-family:inherit; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(13, 59, 102, 0.25); display:flex; align-items:center; justify-content:center; gap:8px;
         }
-        .btn-submit:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 20px rgba(2, 132, 199, 0.35); }
+        .btn-submit:hover { opacity:0.95; transform:translateY(-1px); box-shadow:0 6px 20px rgba(13, 59, 102, 0.35); }
 
         .form-footer { text-align:center; margin-top:20px; font-size:13px; color:#64748b; }
         .form-footer a { color:#0284c7; font-weight:700; text-decoration:none; }

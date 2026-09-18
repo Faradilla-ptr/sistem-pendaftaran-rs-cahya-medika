@@ -837,6 +837,34 @@ class AdminController extends Controller
             return back()->with('info', 'Pasien sudah melakukan check-in sebelumnya. Nomor Antrean: ' . $pendaftaran->no_antrian);
         }
 
+        // Update patient identity if edited by loket/pendaftaran staff
+        if ($pendaftaran->pasien) {
+            $pasienUpdate = [];
+            if ($request->filled('pasien_nik'))               $pasienUpdate['nik']               = $request->pasien_nik;
+            if ($request->filled('pasien_nama_lengkap'))      $pasienUpdate['nama_lengkap']      = $request->pasien_nama_lengkap;
+            if ($request->filled('pasien_tempat_lahir'))      $pasienUpdate['tempat_lahir']      = $request->pasien_tempat_lahir;
+            if ($request->filled('pasien_tanggal_lahir'))     $pasienUpdate['tanggal_lahir']     = $request->pasien_tanggal_lahir;
+            if ($request->filled('pasien_jenis_kelamin'))     $pasienUpdate['jenis_kelamin']     = $request->pasien_jenis_kelamin;
+            if ($request->filled('pasien_pekerjaan'))         $pasienUpdate['pekerjaan']         = $request->pasien_pekerjaan;
+            if ($request->filled('pasien_agama'))             $pasienUpdate['agama']             = $request->pasien_agama;
+            if ($request->filled('pasien_pendidikan'))        $pasienUpdate['pendidikan']        = $request->pasien_pendidikan;
+            if ($request->filled('pasien_status_pernikahan')) $pasienUpdate['status_pernikahan'] = $request->pasien_status_pernikahan;
+            if ($request->filled('pasien_warga_negara'))      $pasienUpdate['warga_negara']      = $request->pasien_warga_negara;
+            if ($request->filled('pasien_golongan_darah'))    $pasienUpdate['golongan_darah']    = $request->pasien_golongan_darah;
+            if ($request->filled('pasien_nama_ibu'))          $pasienUpdate['nama_ibu']          = $request->pasien_nama_ibu;
+            if ($request->filled('pasien_nama_ayah'))         $pasienUpdate['nama_ayah']         = $request->pasien_nama_ayah;
+            if ($request->filled('pasien_no_hp'))             $pasienUpdate['no_hp']             = $request->pasien_no_hp;
+            if ($request->filled('pasien_alamat'))            $pasienUpdate['alamat']            = $request->pasien_alamat;
+            if ($request->filled('pasien_provinsi'))          $pasienUpdate['provinsi']          = $request->pasien_provinsi;
+            if ($request->filled('pasien_kabupaten'))         $pasienUpdate['kabupaten']         = $request->pasien_kabupaten;
+            if ($request->filled('pasien_kecamatan'))         $pasienUpdate['kecamatan']         = $request->pasien_kecamatan;
+            if ($request->filled('pasien_kelurahan'))         $pasienUpdate['kelurahan']         = $request->pasien_kelurahan;
+
+            if (!empty($pasienUpdate)) {
+                $pendaftaran->pasien->update($pasienUpdate);
+            }
+        }
+
         $noAntrian = Pendaftaran::generateNoAntrian($pendaftaran->poli_id, $pendaftaran->tanggal_kunjungan->format('Y-m-d'));
 
         $pendaftaran->update([
@@ -845,6 +873,13 @@ class AdminController extends Controller
             'waktu_checkin'     => now(),
             'status'            => 'menunggu',
             'deposit_awal'      => $request->deposit_awal ?? 200000.00,
+            'tekanan_darah'     => $request->tekanan_darah ?? $pendaftaran->tekanan_darah,
+            'suhu'              => $request->suhu ?? $pendaftaran->suhu,
+            'nadi'              => $request->nadi ?? $pendaftaran->nadi,
+            'respirasi'         => $request->respirasi ?? $pendaftaran->respirasi,
+            'berat_badan'       => $request->berat_badan ?? $pendaftaran->berat_badan,
+            'tinggi_badan'      => $request->tinggi_badan ?? $pendaftaran->tinggi_badan,
+            'spo2'              => $request->spo2 ?? $pendaftaran->spo2,
         ]);
 
         // Triggers Stage 1 SatuSehat (In Progress)
