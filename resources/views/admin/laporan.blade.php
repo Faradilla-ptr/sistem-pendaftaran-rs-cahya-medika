@@ -4,14 +4,18 @@
 
 @section('content')
 
+@php
+    $r = request()->is('rekam-medis*') ? 'rekam_medis.' : (request()->is('pendaftaran*') ? 'pendaftaran.' : 'admin.');
+@endphp
+
 <!-- FILTER + EXPORT -->
 <div class="card" style="margin-bottom:20px">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.laporan') }}" id="filterForm">
-            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-                <div class="form-group" style="margin:0">
-                    <label class="form-label">Bulan</label>
-                    <select name="bulan" class="form-select">
+    <div class="card-body" style="padding:14px 18px">
+        <form method="GET" action="{{ route($r . 'laporan') }}" id="filterForm">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px">
+                    <label style="font-size:11px;font-weight:600;color:#6b7280">Bulan Kunjungan</label>
+                    <select name="bulan" class="form-select" style="padding:6px 12px;font-size:12px;width:100%">
                         @foreach(range(1,12) as $b)
                             <option value="{{ $b }}" {{ $bulan == $b ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::create()->month($b)->locale('id')->monthName }}
@@ -19,25 +23,24 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group" style="margin:0">
-                    <label class="form-label">Tahun</label>
-                    <select name="tahun" class="form-select">
+                <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px">
+                    <label style="font-size:11px;font-weight:600;color:#6b7280">Tahun</label>
+                    <select name="tahun" class="form-select" style="padding:6px 12px;font-size:12px;width:100%">
                         @foreach(range(date('Y'), date('Y')-4) as $t)
                             <option value="{{ $t }}" {{ $tahun == $t ? 'selected' : '' }}>{{ $t }}</option>
                         @endforeach
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Tampilkan</button>
-
-                <div style="margin-left:auto;display:flex;gap:8px">
+                <div style="display:flex;gap:8px;align-items:center;align-self:flex-end">
+                    <button type="submit" class="btn btn-primary btn-sm" style="padding:7px 16px"><i class="fas fa-filter"></i> Tampilkan</button>
                     <!-- Export Excel -->
-                    <a href="{{ route('admin.laporan.excel', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
-                        class="btn btn-outline" style="color:#059669;border-color:#059669">
+                    <a href="{{ route($r . 'laporan.excel', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
+                        class="btn btn-outline btn-sm" style="color:#059669;border-color:#059669;padding:7px 14px;font-weight:600">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <!-- Export PDF (buka tab baru → print) -->
-                    <a href="{{ route('admin.laporan.pdf', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
-                        target="_blank" class="btn btn-outline" style="color:#dc2626;border-color:#dc2626">
+                    <!-- Export PDF -->
+                    <a href="{{ route($r . 'laporan.pdf', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
+                        target="_blank" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#dc2626;padding:7px 14px;font-weight:600">
                         <i class="fas fa-file-pdf"></i> Export PDF
                     </a>
                 </div>

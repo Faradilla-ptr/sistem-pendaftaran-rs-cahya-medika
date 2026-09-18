@@ -17,7 +17,6 @@ class PasienController extends Controller
     public function __construct(SatuSehatService $satuSehat)
     {
         $this->satuSehat = $satuSehat;
-        $this->middleware(['auth', 'role:pasien']);
     }
 
     public function dashboard()
@@ -45,7 +44,15 @@ class PasienController extends Controller
             ->limit(5)
             ->get();
 
-        return view('pasien.dashboard', compact('pasien', 'pendaftaran_aktif', 'riwayat'));
+        $riwayat_terakhir = $riwayat;
+
+        $stats = [
+            'total_pendaftaran' => Pendaftaran::where('pasien_id', $pasien->id)->count(),
+            'menunggu'          => Pendaftaran::where('pasien_id', $pasien->id)->whereIn('status', ['menunggu', 'dipanggil'])->count(),
+            'selesai'           => Pendaftaran::where('pasien_id', $pasien->id)->where('status', 'selesai')->count(),
+        ];
+
+        return view('pasien.dashboard', compact('pasien', 'pendaftaran_aktif', 'riwayat', 'riwayat_terakhir', 'stats'));
     }
 
     public function profil()
@@ -69,11 +76,11 @@ class PasienController extends Controller
             'tanggal_lahir'    => 'required|date',
             'tempat_lahir'     => 'required|string|max:100',
             'jenis_kelamin'    => 'required|in:L,P',
-            'golongan_darah'   => 'nullable|in:A,B,AB,O',
+            'golongan_darah'   => 'nullable|string|max:20',
             'agama'            => 'nullable|string|max:50',
             'status_pernikahan' => 'nullable|string|max:50',
             'pekerjaan'        => 'nullable|string|max:100',
-            'no_hp'            => 'required|string|max:15',
+            'no_hp'            => 'required|string|regex:/^08[0-9]{8,11}$/',
             'email'            => 'nullable|email|max:255',
             'alamat'           => 'required|string',
             'kecamatan'        => 'required|string|max:100',
@@ -82,7 +89,10 @@ class PasienController extends Controller
             // Penanggung Jawab
             'nama_pj'          => 'required|string|max:255',
             'hubungan_pj'      => 'required|string|max:50',
-            'no_hp_pj'         => 'required|string|max:15',
+            'no_hp_pj'         => 'required|string|regex:/^08[0-9]{8,11}$/',
+        ], [
+            'no_hp.regex'     => 'Nomor HP harus diawali dengan 08 dan terdiri dari 10-13 angka.',
+            'no_hp_pj.regex'  => 'Nomor HP Penanggung Jawab harus diawali dengan 08 dan terdiri dari 10-13 angka.',
         ]);
 
         if ($validator->fails()) {
@@ -163,5 +173,40 @@ class PasienController extends Controller
             ->paginate(15);
 
         return view('pasien.riwayat', compact('riwayat', 'pasien'));
+    }
+
+    public function ocrKtp(Request $request, \App\Services\GeminiOcrService $ocrService)
+    {
+        try {
+            $base64 = $request->input('ktp_image');
+            if ($request->hasFile('ktp_image')) {
+                $file = $request->file('ktp_image');
+                $base64 = base64_encode(file_get_contents($file->getRealPath()));
+            }
+
+            if (empty($base64)) {
+                return response()->json(['success' => false, 'message' => 'Foto KTP wajib diunggah.'], 400);
+            }
+
+            $result = $ocrService->parseKtpImage($base64);
+
+            if (empty($result['success'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Gagal membaca KTP menggunakan Gemini API.'
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data'    => $result['data'] ?? [],
+                'message' => 'Data KTP berhasil diekstraksi menggunakan AI Gemini API.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses OCR KTP: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
