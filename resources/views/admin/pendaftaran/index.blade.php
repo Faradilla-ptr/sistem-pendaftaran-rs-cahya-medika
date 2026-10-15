@@ -187,6 +187,10 @@
                                 <i class="fas fa-print"></i> Form
                             </a>
 
+                            <a href="{{ route($r . 'pendaftaran.rme', $p->id) }}" class="btn btn-outline btn-sm" title="Formulir RME & CPPT" style="color:#059669;border-color:#bbf7d0;background:#f0fdf4;padding:3px 7px;font-size:11px">
+                                <i class="fas fa-file-medical"></i> RME
+                            </a>
+
                             @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']) && $p->status === 'pemeriksaan_selesai')
                                 <button type="button" class="btn btn-warning btn-sm" style="padding:3px 7px;font-size:11px" onclick="openDepositModal({{ $p->id }}, {{ $p->deposit_awal }}, {{ $p->biaya_total }})">
                                     <i class="fas fa-hand-holding-usd"></i> Sisa Depo

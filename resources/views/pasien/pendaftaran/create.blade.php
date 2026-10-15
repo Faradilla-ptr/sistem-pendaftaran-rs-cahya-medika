@@ -187,16 +187,55 @@
                 <strong>Scan KTP / Isi Manual:</strong> Anda dapat mengunggah foto KTP melalui tombol <strong>"Scan KTP"</strong> untuk pengisian otomatis, atau memilih dan mengisi langsung setiap bidang pada form di bawah.
             </div>
 
+            <!-- BANNER EMERGENCY & PASIEN DARURAT (MR. X) -->
+            <div style="background:#fff1f2;border:1.5px dashed #f43f5e;border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:36px;height:36px;background:#ffe4e6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#e11d48;font-size:18px">
+                        <i class="fas fa-ambulance"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:13px;font-weight:800;color:#9f1239">Pasien Kasus Darurat / Mr. X (Identitas Belum Lengkap)</div>
+                        <div style="font-size:11.5px;color:#be123c">Centang jika pendaftaran darurat tanpa data KTP lengkap. Identitas akan dilengkapi oleh Rekam Medis setelah stabil.</div>
+                    </div>
+                </div>
+                <div class="form-check form-switch" style="margin:0;padding-left:2.5em">
+                    <input class="form-check-input" type="checkbox" name="is_emergency" id="checkEmergency" value="1" onchange="toggleEmergency(this.checked)" style="width:40px;height:22px;cursor:pointer">
+                </div>
+            </div>
+
+            <!-- BANNER BAYI BARU LAHIR (< 30 HARI) -->
+            <div id="babyBanner" style="display:none;background:#fdf4ff;border:1.5px solid #f0abfc;border-radius:12px;padding:12px 16px;margin-bottom:18px">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:36px;height:36px;background:#fae8ff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#c026d3;font-size:18px">
+                        <i class="fas fa-baby"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:13px;font-weight:800;color:#86198f">Pasien Bayi Baru Lahir (&lt; 30 Hari) Terdeteksi!</div>
+                        <div style="font-size:11.5px;color:#a21caf">Sesuai Permenkes, NIK Bayi bersifat opsional. <strong>Wajib</strong> mengisi Nama Ibu Kandung &amp; NIK Ibu Kandung.</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- BAGIAN 1: DATA UMUM PASIEN -->
             <div class="section-head"><i class="fas fa-user-circle"></i> Data Umum Pasien</div>
             
-            <div class="grid grid-2" style="gap:16px;margin-bottom:16px">
+            <div class="grid grid-3" style="gap:16px;margin-bottom:16px">
                 <div class="form-group">
-                    <label class="form-label">No. KTP / SIM / NIK</label>
-                    <input type="text" name="nik" id="fieldNik" class="form-control" value="{{ old('nik', $pasien->nik ?? '') }}" placeholder="16 Digit NIK KTP" required maxlength="16">
+                    <label class="form-label" id="labelNik">No. KTP / SIM / NIK <span class="text-danger" id="starNik">*</span></label>
+                    <div style="position:relative">
+                        <input type="text" name="nik" id="fieldNik" class="form-control" value="{{ old('nik', $pasien->nik ?? '') }}" placeholder="16 Digit NIK KTP" required maxlength="16" oninput="handleNikInput(this.value)">
+                        <div id="nikLoadingSpinner" style="position:absolute;right:12px;top:10px;display:none">
+                            <i class="fas fa-spinner fa-spin text-primary"></i>
+                        </div>
+                    </div>
+                    <div id="nikBadge" style="margin-top:4px;font-size:11px;font-weight:600;display:none"></div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Nama Lengkap Pasien</label>
+                    <label class="form-label">No. Kartu Keluarga (KK)</label>
+                    <input type="text" name="no_kk" id="fieldNoKk" class="form-control" value="{{ old('no_kk', $pasien->no_kk ?? '') }}" placeholder="16 Digit No. KK" maxlength="16">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap Pasien <span class="text-danger">*</span></label>
                     <input type="text" name="nama_lengkap" id="fieldNama" class="form-control" value="{{ old('nama_lengkap', $pasien->nama_lengkap ?? '') }}" placeholder="Sesuai KTP / Identitas" required>
                 </div>
             </div>
@@ -208,7 +247,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Tanggal Lahir</label>
-                    <input type="date" name="tanggal_lahir" id="fieldTanggalLahir" class="form-control" value="{{ old('tanggal_lahir', optional($pasien->tanggal_lahir ?? null)->format('Y-m-d') ?? '') }}" required>
+                    <input type="date" name="tanggal_lahir" id="fieldTanggalLahir" class="form-control" value="{{ old('tanggal_lahir', optional($pasien->tanggal_lahir ?? null)->format('Y-m-d') ?? '') }}" required onchange="checkBabyAge(this.value)">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Jenis Kelamin</label>
@@ -279,10 +318,14 @@
                 </div>
             </div>
 
-            <div class="grid grid-2" style="gap:16px;margin-bottom:16px">
+            <div class="grid grid-3" style="gap:16px;margin-bottom:16px">
                 <div class="form-group">
-                    <label class="form-label">Nama Ibu Kandung</label>
+                    <label class="form-label" id="labelNamaIbu">Nama Ibu Kandung</label>
                     <input type="text" name="nama_ibu" id="fieldNamaIbu" class="form-control" value="{{ old('nama_ibu', $pasien->nama_ibu ?? '') }}" placeholder="Nama Ibu Kandung">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" id="labelNikIbu">NIK Ibu Kandung</label>
+                    <input type="text" name="nik_ibu" id="fieldNikIbu" class="form-control" value="{{ old('nik_ibu', $pasien->nik_ibu ?? '') }}" placeholder="16 Digit NIK Ibu" maxlength="16">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Nama Ayah Kandung</label>
@@ -290,9 +333,15 @@
                 </div>
             </div>
 
-            <div class="form-group" style="margin-bottom:16px">
-                <label class="form-label">Alamat Lengkap KTP (Jalan / Dusun / RT / RW)</label>
-                <textarea name="alamat" id="fieldAlamat" class="form-control" rows="2" placeholder="Jalan, Dusun, RT/RW" required>{{ old('alamat', $pasien->alamat ?? '') }}</textarea>
+            <div class="grid grid-2" style="gap:16px;margin-bottom:16px">
+                <div class="form-group">
+                    <label class="form-label">Alamat Lengkap KTP (Jalan / Dusun / RT / RW)</label>
+                    <textarea name="alamat" id="fieldAlamat" class="form-control" rows="2" placeholder="Jalan, Dusun, RT/RW" required>{{ old('alamat', $pasien->alamat ?? '') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alamat Domisili <span style="font-size:11px;color:#64748b">(Kosongkan jika sama dengan KTP)</span></label>
+                    <textarea name="alamat_domisili" id="fieldAlamatDomisili" class="form-control" rows="2" placeholder="Alamat tinggal saat ini">{{ old('alamat_domisili', $pasien->alamat_domisili ?? '') }}</textarea>
+                </div>
             </div>
 
             <div class="grid grid-4" style="gap:16px;margin-bottom:16px">
@@ -457,7 +506,7 @@
             <div class="card-title">📅 Step 3: Pilih Tanggal & Jam Kunjungan</div>
         </div>
         <div class="card-body">
-            <div class="grid grid-2" style="gap:16px;margin-bottom:20px">
+            <div class="grid grid-3" style="gap:16px;margin-bottom:20px">
                 <div class="form-group">
                     <label class="form-label">Tanggal Kunjungan Berobat</label>
                     <input type="date" name="tanggal_kunjungan" id="tanggalInput" class="form-control"
@@ -465,9 +514,17 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Jenis Kunjungan</label>
-                    <select name="jenis_kunjungan" class="form-select" required>
+                    <select name="jenis_kunjungan" id="fieldJenisKunjungan" class="form-select" required>
                         <option value="baru">Pasien Baru</option>
                         <option value="kontrol">Kontrol / Lanjutan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cara Bayar</label>
+                    <select name="cara_bayar" id="fieldCaraBayar" class="form-select" required onchange="document.getElementById('konfCaraBayar').textContent = this.value">
+                        <option value="Umum" {{ old('cara_bayar') == 'Umum' ? 'selected' : '' }}>Umum / Mandiri</option>
+                        <option value="BPJS Kesehatan" {{ old('cara_bayar') == 'BPJS Kesehatan' ? 'selected' : '' }}>BPJS Kesehatan</option>
+                        <option value="Asuransi Lain" {{ old('cara_bayar') == 'Asuransi Lain' ? 'selected' : '' }}>Asuransi Swasta / Lainnya</option>
                     </select>
                 </div>
             </div>
@@ -523,6 +580,7 @@
                 <div style="font-size:14px;font-weight:800;margin-bottom:16px;opacity:0.8;text-transform:uppercase;letter-spacing:1px">Detail Pendaftaran Pasien</div>
                 <div class="row"><span class="label">Nama Pasien</span><span class="val" id="konfNama">-</span></div>
                 <div class="row"><span class="label">NIK KTP</span><span class="val" id="konfNik">-</span></div>
+                <div class="row"><span class="label">Cara Bayar</span><span class="val" id="konfCaraBayar">Umum / Mandiri</span></div>
                 <div class="row"><span class="label">Poli Tujuan</span><span class="val" id="konfPoliNama">-</span></div>
                 <div class="row"><span class="label">Dokter Spesialis</span><span class="val" id="konfDokterNama">-</span></div>
                 <div class="row"><span class="label">Tanggal Kunjungan</span><span class="val" id="konfTanggal">-</span></div>
@@ -563,10 +621,148 @@
 let selectedPoli = { id: null, nama: '' };
 let selectedDokter = { id: null, nama: '', spesialisasi: '' };
 let selectedJam = null;
+let isEmergency = false;
+let isBaby = false;
+let nikDebounceTimer = null;
+
+function handleNikInput(val) {
+    clearTimeout(nikDebounceTimer);
+    const cleaned = val.replace(/\D/g, '');
+    document.getElementById('fieldNik').value = cleaned;
+    const badge = document.getElementById('nikBadge');
+    
+    if (cleaned.length === 16) {
+        document.getElementById('nikLoadingSpinner').style.display = 'block';
+        nikDebounceTimer = setTimeout(() => {
+            fetch(`{{ route('api.cek-nik') }}?nik=${cleaned}`)
+                .then(r => r.json())
+                .then(res => {
+                    document.getElementById('nikLoadingSpinner').style.display = 'none';
+                    if (res.exists && res.pasien) {
+                        badge.style.display = 'block';
+                        badge.style.color = '#0284c7';
+                        badge.innerHTML = `<i class="fas fa-check-circle"></i> Pasien Terdaftar: <strong>${res.pasien.nama_lengkap}</strong> (No. RM: ${res.pasien.no_rm}). Kunjungan otomatis diset ke Kontrol.`;
+                        
+                        if (res.pasien.nama_lengkap) document.getElementById('fieldNama').value = res.pasien.nama_lengkap;
+                        if (res.pasien.tempat_lahir) document.getElementById('fieldTempatLahir').value = res.pasien.tempat_lahir;
+                        if (res.pasien.tanggal_lahir) {
+                            document.getElementById('fieldTanggalLahir').value = res.pasien.tanggal_lahir.substring(0, 10);
+                            checkBabyAge(res.pasien.tanggal_lahir);
+                        }
+                        if (res.pasien.jenis_kelamin) setSelectValue('fieldJenisKelamin', res.pasien.jenis_kelamin);
+                        if (res.pasien.golongan_darah) setSelectValue('fieldGolonganDarah', res.pasien.golongan_darah);
+                        if (res.pasien.pekerjaan) setSelectValue('fieldPekerjaan', res.pasien.pekerjaan);
+                        if (res.pasien.agama) setSelectValue('fieldAgama', res.pasien.agama);
+                        if (res.pasien.status_pernikahan) setSelectValue('fieldStatusPernikahan', res.pasien.status_pernikahan);
+                        if (res.pasien.warga_negara) setSelectValue('fieldWargaNegara', res.pasien.warga_negara);
+                        if (res.pasien.alamat) document.getElementById('fieldAlamat').value = res.pasien.alamat;
+                        if (res.pasien.alamat_domisili) document.getElementById('fieldAlamatDomisili').value = res.pasien.alamat_domisili;
+                        if (res.pasien.provinsi) setSelectValue('fieldProvinsi', res.pasien.provinsi);
+                        if (res.pasien.kabupaten) setSelectValue('fieldKabupaten', res.pasien.kabupaten);
+                        if (res.pasien.kecamatan) setSelectValue('fieldKecamatan', res.pasien.kecamatan);
+                        if (res.pasien.kelurahan) setSelectValue('fieldKelurahan', res.pasien.kelurahan);
+                        if (res.pasien.no_hp) document.getElementById('fieldNoHp').value = res.pasien.no_hp;
+                        if (res.pasien.no_kk) document.getElementById('fieldNoKk').value = res.pasien.no_kk;
+                        if (res.pasien.nama_ibu) document.getElementById('fieldNamaIbu').value = res.pasien.nama_ibu;
+                        if (res.pasien.nik_ibu) document.getElementById('fieldNikIbu').value = res.pasien.nik_ibu;
+
+                        const jk = document.getElementById('fieldJenisKunjungan');
+                        if (jk) jk.value = 'kontrol';
+
+                        Swal.fire({
+                            title: 'Pasien Ditemukan!',
+                            html: `NIK terdaftar atas nama <strong>${res.pasien.nama_lengkap}</strong> (No. RM: <strong>${res.pasien.no_rm}</strong>).<br><span style="font-size:12px;color:#0284c7">Data formulir telah terisi otomatis dan jenis kunjungan diset sebagai <strong>Kontrol</strong>.</span>`,
+                            icon: 'info',
+                            confirmButtonColor: '#0284c7'
+                        });
+                    } else {
+                        badge.style.display = 'block';
+                        badge.style.color = '#059669';
+                        badge.innerHTML = `<i class="fas fa-user-plus"></i> NIK Baru (Belum pernah berobat). Silakan lengkapi formulir.`;
+                        const jk = document.getElementById('fieldJenisKunjungan');
+                        if (jk) jk.value = 'baru';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('nikLoadingSpinner').style.display = 'none';
+                });
+        }, 500);
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function checkBabyAge(dateStr) {
+    if (!dateStr) return;
+    const bDate = new Date(dateStr);
+    const now = new Date();
+    const diffTime = now - bDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const babyBanner = document.getElementById('babyBanner');
+    const labelNik = document.getElementById('labelNik');
+    const starNik = document.getElementById('starNik');
+    const fieldNik = document.getElementById('fieldNik');
+    const labelNamaIbu = document.getElementById('labelNamaIbu');
+    const labelNikIbu = document.getElementById('labelNikIbu');
+
+    if (diffDays >= 0 && diffDays < 30) {
+        isBaby = true;
+        if (babyBanner) babyBanner.style.display = 'block';
+        if (starNik) starNik.style.display = 'none';
+        if (fieldNik) {
+            fieldNik.removeAttribute('required');
+            fieldNik.placeholder = 'Opsional (Bayi < 30 hari)';
+        }
+        if (labelNamaIbu) labelNamaIbu.innerHTML = 'Nama Ibu Kandung <span class="text-danger">* (Wajib Bayi)</span>';
+        if (labelNikIbu) labelNikIbu.innerHTML = 'NIK Ibu Kandung <span class="text-danger">* (Wajib Bayi)</span>';
+    } else {
+        isBaby = false;
+        if (babyBanner) babyBanner.style.display = 'none';
+        if (starNik) starNik.style.display = 'inline';
+        if (fieldNik && !isEmergency) {
+            fieldNik.setAttribute('required', 'required');
+            fieldNik.placeholder = '16 Digit NIK KTP';
+        }
+        if (labelNamaIbu) labelNamaIbu.innerHTML = 'Nama Ibu Kandung';
+        if (labelNikIbu) labelNikIbu.innerHTML = 'NIK Ibu Kandung';
+    }
+}
+
+function toggleEmergency(checked) {
+    isEmergency = checked;
+    const fieldNik = document.getElementById('fieldNik');
+    const starNik = document.getElementById('starNik');
+    if (checked) {
+        if (starNik) starNik.style.display = 'none';
+        if (fieldNik) {
+            fieldNik.removeAttribute('required');
+            if (!fieldNik.value) fieldNik.value = '';
+        }
+        if (!document.getElementById('fieldNama').value) {
+            document.getElementById('fieldNama').value = 'Mr. X (Emergency)';
+        }
+        Swal.fire({
+            title: 'Mode Kasus Darurat (Emergency)',
+            text: 'Kelengkapan identitas KTP dinonaktifkan sementara. Pasien dapat segera didaftarkan untuk tindakan penanganan darurat.',
+            icon: 'warning',
+            confirmButtonColor: '#e11d48'
+        });
+    } else {
+        if (!isBaby) {
+            if (starNik) starNik.style.display = 'inline';
+            if (fieldNik) fieldNik.setAttribute('required', 'required');
+        }
+        if (document.getElementById('fieldNama').value === 'Mr. X (Emergency)') {
+            document.getElementById('fieldNama').value = '';
+        }
+    }
+}
 
 // Browser location access permission prompt on page load
 document.addEventListener('DOMContentLoaded', function() {
     deteksiLokasiGeolocAuto();
+    const tgl = document.getElementById('fieldTanggalLahir')?.value;
+    if (tgl) checkBabyAge(tgl);
 });
 
 function deteksiLokasiGeolocAuto() {
@@ -859,78 +1055,94 @@ function formatAndValidatePhone(el) {
 
 function nextStep(from) {
     if (from === 1) {
-        const requiredFields = [
-            { id: 'fieldNik', label: 'No. KTP / NIK' },
-            { id: 'fieldNama', label: 'Nama Lengkap Pasien' },
-            { id: 'fieldTempatLahir', label: 'Tempat Lahir' },
-            { id: 'fieldTanggalLahir', label: 'Tanggal Lahir' },
-            { id: 'fieldJenisKelamin', label: 'Jenis Kelamin' },
-            { id: 'fieldPekerjaan', label: 'Pekerjaan Pasien' },
-            { id: 'fieldAgama', label: 'Agama' },
-            { id: 'fieldPendidikan', label: 'Pendidikan Terakhir' },
-            { id: 'fieldStatusPernikahan', label: 'Status Perkawinan' },
-            { id: 'fieldWargaNegara', label: 'Warga Negara' },
-            { id: 'fieldGolonganDarah', label: 'Golongan Darah' },
-            { id: 'fieldAlamat', label: 'Alamat Lengkap' },
-            { id: 'fieldProvinsi', label: 'Provinsi' },
-            { id: 'fieldKabupaten', label: 'Kabupaten' },
-            { id: 'fieldKecamatan', label: 'Kecamatan' },
-            { id: 'fieldKelurahan', label: 'Desa / Kelurahan' },
-            { id: 'fieldNoHp', label: 'No. Telepon / WhatsApp Pasien' }
-        ];
-
-        let missing = [];
-        requiredFields.forEach(f => {
-            const el = document.getElementById(f.id);
-            if (!el || !el.value || !el.value.trim()) {
-                missing.push(f.label);
+        if (isEmergency) {
+            const namaEl = document.getElementById('fieldNama');
+            if (!namaEl || !namaEl.value.trim()) {
+                Swal.fire('Formulir Darurat', 'Harap isi minimal Nama Pasien (misal Mr. X / Darurat).', 'warning');
+                return;
             }
-        });
+            document.getElementById('konfNama').textContent = namaEl.value;
+            document.getElementById('konfNik').textContent = document.getElementById('fieldNik').value || 'MR. X / DARURAT';
+        } else {
+            let requiredFields = [
+                { id: 'fieldNama', label: 'Nama Lengkap Pasien' },
+                { id: 'fieldTempatLahir', label: 'Tempat Lahir' },
+                { id: 'fieldTanggalLahir', label: 'Tanggal Lahir' },
+                { id: 'fieldJenisKelamin', label: 'Jenis Kelamin' },
+                { id: 'fieldPekerjaan', label: 'Pekerjaan Pasien' },
+                { id: 'fieldAgama', label: 'Agama' },
+                { id: 'fieldPendidikan', label: 'Pendidikan Terakhir' },
+                { id: 'fieldStatusPernikahan', label: 'Status Perkawinan' },
+                { id: 'fieldWargaNegara', label: 'Warga Negara' },
+                { id: 'fieldGolonganDarah', label: 'Golongan Darah' },
+                { id: 'fieldAlamat', label: 'Alamat Lengkap' },
+                { id: 'fieldProvinsi', label: 'Provinsi' },
+                { id: 'fieldKabupaten', label: 'Kabupaten' },
+                { id: 'fieldKecamatan', label: 'Kecamatan' },
+                { id: 'fieldKelurahan', label: 'Desa / Kelurahan' },
+                { id: 'fieldNoHp', label: 'No. Telepon / WhatsApp Pasien' }
+            ];
 
-        if (missing.length > 0) {
-            Swal.fire({
-                title: 'Formulir Belum Lengkap',
-                html: `<div style="text-align:left;font-size:13px;padding:10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;color:#991b1b">
-                        <strong>Harap lengkapi seluruh kolom Formulir Pasien di bawah ini terlebih dahulu:</strong>
-                        <ul style="margin-top:6px;margin-left:18px">
-                            ${missing.map(m => `<li>${m}</li>`).join('')}
-                        </ul>
-                       </div>`,
-                icon: 'warning',
-                confirmButtonColor: '#0284c7'
+            if (isBaby) {
+                requiredFields.push({ id: 'fieldNamaIbu', label: 'Nama Ibu Kandung (Wajib Bayi)' });
+                requiredFields.push({ id: 'fieldNikIbu', label: 'NIK Ibu Kandung (Wajib Bayi)' });
+            } else {
+                requiredFields.unshift({ id: 'fieldNik', label: 'No. KTP / NIK Pasien' });
+            }
+
+            let missing = [];
+            requiredFields.forEach(f => {
+                const el = document.getElementById(f.id);
+                if (!el || !el.value || !el.value.trim()) {
+                    missing.push(f.label);
+                }
             });
-            return;
-        }
 
-        const phoneVal = document.getElementById('fieldNoHp').value.trim();
-        if (!phoneVal.startsWith('08') || phoneVal.length < 10 || phoneVal.length > 13 || /\D/.test(phoneVal)) {
-            Swal.fire({
-                title: 'Nomor HP Tidak Valid',
-                text: 'Nomor HP Pasien wajib diawali dengan 08, hanya berupa angka, dan berjumlah 10 hingga 13 digit.',
-                icon: 'warning',
-                confirmButtonColor: '#0284c7'
-            });
-            document.getElementById('fieldNoHp').focus();
-            return;
-        }
-
-        const phonePjEl = document.getElementById('fieldNoHpPj');
-        if (phonePjEl && phonePjEl.value.trim().length > 0) {
-            const phonePjVal = phonePjEl.value.trim();
-            if (!phonePjVal.startsWith('08') || phonePjVal.length < 10 || phonePjVal.length > 13 || /\D/.test(phonePjVal)) {
+            if (missing.length > 0) {
                 Swal.fire({
-                    title: 'Nomor HP Penanggung Jawab Tidak Valid',
-                    text: 'Nomor HP Penanggung Jawab wajib diawali dengan 08, hanya berupa angka, dan berjumlah 10 hingga 13 digit.',
+                    title: 'Formulir Belum Lengkap',
+                    html: `<div style="text-align:left;font-size:13px;padding:10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;color:#991b1b">
+                            <strong>Harap lengkapi seluruh kolom Formulir Pasien di bawah ini terlebih dahulu:</strong>
+                            <ul style="margin-top:6px;margin-left:18px">
+                                ${missing.map(m => `<li>${m}</li>`).join('')}
+                            </ul>
+                           </div>`,
                     icon: 'warning',
                     confirmButtonColor: '#0284c7'
                 });
-                phonePjEl.focus();
                 return;
             }
-        }
 
-        document.getElementById('konfNama').textContent = document.getElementById('fieldNama').value;
-        document.getElementById('konfNik').textContent = document.getElementById('fieldNik').value;
+            const phoneVal = document.getElementById('fieldNoHp').value.trim();
+            if (!phoneVal.startsWith('08') || phoneVal.length < 10 || phoneVal.length > 13 || /\D/.test(phoneVal)) {
+                Swal.fire({
+                    title: 'Nomor HP Tidak Valid',
+                    text: 'Nomor HP Pasien wajib diawali dengan 08, hanya berupa angka, dan berjumlah 10 hingga 13 digit.',
+                    icon: 'warning',
+                    confirmButtonColor: '#0284c7'
+                });
+                document.getElementById('fieldNoHp').focus();
+                return;
+            }
+
+            const phonePjEl = document.getElementById('fieldNoHpPj');
+            if (phonePjEl && phonePjEl.value.trim().length > 0) {
+                const phonePjVal = phonePjEl.value.trim();
+                if (!phonePjVal.startsWith('08') || phonePjVal.length < 10 || phonePjVal.length > 13 || /\D/.test(phonePjVal)) {
+                    Swal.fire({
+                        title: 'Nomor HP Penanggung Jawab Tidak Valid',
+                        text: 'Nomor HP Penanggung Jawab wajib diawali dengan 08, hanya berupa angka, dan berjumlah 10 hingga 13 digit.',
+                        icon: 'warning',
+                        confirmButtonColor: '#0284c7'
+                    });
+                    phonePjEl.focus();
+                    return;
+                }
+            }
+
+            document.getElementById('konfNama').textContent = document.getElementById('fieldNama').value;
+            document.getElementById('konfNik').textContent = document.getElementById('fieldNik').value || '(Bayi < 30 Hari)';
+        }
     }
     if (from === 2) {
         if (!selectedPoli.id) { document.getElementById('poliError').style.display = 'block'; return; }

@@ -83,6 +83,9 @@ Route::get('/rekam-medis', function () {
     return redirect()->route('rekam_medis.dashboard');
 });
 
+// General API
+Route::get('/api/cek-nik', [PendaftaranController::class, 'cekNik'])->name('api.cek-nik');
+
 // ==================== AUTH ====================
 Route::middleware('guest')->group(function () {
     // 1. Pasien Login
@@ -146,6 +149,9 @@ Route::middleware(['auth', 'role:admin,pendaftaran'])->prefix('pendaftaran')->na
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
+    Route::get('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeForm'])->name('pendaftaran.rme');
+    Route::post('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeStore'])->name('pendaftaran.rme.store');
+    Route::get('/pendaftaran/{pendaftaran}/rme/pdf', [AdminController::class, 'rmePdf'])->name('pendaftaran.rme.pdf');
     Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
     Route::post('/pendaftaran/{pendaftaran}/settle-deposit', [AdminController::class, 'settleDeposit'])->name('pendaftaran.settle-deposit');
     Route::get('/api/lookup-booking', [AdminController::class, 'lookupBooking'])->name('api.lookup-booking');
@@ -198,6 +204,9 @@ Route::middleware(['auth', 'role:admin,rekam_medis'])->prefix('rekam-medis')->na
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
+    Route::get('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeForm'])->name('pendaftaran.rme');
+    Route::post('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeStore'])->name('pendaftaran.rme.store');
+    Route::get('/pendaftaran/{pendaftaran}/rme/pdf', [AdminController::class, 'rmePdf'])->name('pendaftaran.rme.pdf');
     Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
     Route::get('/api/lookup-booking', [AdminController::class, 'lookupBooking'])->name('api.lookup-booking');
     Route::patch('/pendaftaran/{pendaftaran}/status', [AdminController::class, 'pendaftaranUpdateStatus'])->name('pendaftaran.status');
@@ -244,6 +253,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/pendaftaran/{pendaftaran}', [AdminController::class, 'pendaftaranShow'])->name('pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/pdf', [AdminController::class, 'pendaftaranCetakPdf'])->name('pendaftaran.pdf');
     Route::get('/pendaftaran/{pendaftaran}/cetak-formulir', [AdminController::class, 'cetakFormulir'])->name('pendaftaran.cetak-formulir');
+    Route::get('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeForm'])->name('pendaftaran.rme');
+    Route::post('/pendaftaran/{pendaftaran}/rme', [AdminController::class, 'rmeStore'])->name('pendaftaran.rme.store');
+    Route::get('/pendaftaran/{pendaftaran}/rme/pdf', [AdminController::class, 'rmePdf'])->name('pendaftaran.rme.pdf');
     Route::post('/pendaftaran/{pendaftaran}/checkin', [AdminController::class, 'checkin'])->name('pendaftaran.checkin');
     Route::post('/pendaftaran/{pendaftaran}/settle-deposit', [AdminController::class, 'settleDeposit'])->name('pendaftaran.settle-deposit');
     Route::post('/pendaftaran/{pendaftaran}/finalize-rekam-medis', [AdminController::class, 'finalizeRekamMedis'])->name('pendaftaran.finalize-rekam-medis');

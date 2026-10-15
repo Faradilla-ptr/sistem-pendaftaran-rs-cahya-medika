@@ -81,6 +81,117 @@
     </div>
 </div>
 
+<!-- SENSUS HARIAN RAWAT JALAN (PRD v2.0) -->
+<div class="card" style="margin-bottom:24px;border-left:4px solid #0891b2">
+    <div class="card-header" style="background:linear-gradient(135deg,#f8fafc,#f1f5f9)">
+        <div>
+            <div class="card-title" style="color:#0c4a6e;font-size:15px"><i class="fas fa-clipboard-list" style="color:#0891b2;margin-right:8px"></i> Sensus Harian Rawat Jalan — {{ $namabulan }}</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px">Klasifikasi demografi wilayah, jenis kelamin, cara bayar, poli spesifik, dan rekap dokter spesialis sesuai standar pelaporan RS.</div>
+        </div>
+        <span class="badge" style="background:#0891b2;color:white;font-size:11px;padding:6px 12px;border-radius:8px">Standar PRD v2.0</span>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-4" style="gap:16px;margin-bottom:20px">
+            <!-- 1. Wilayah -->
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px">
+                <div style="font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;margin-bottom:8px"><i class="fas fa-map-marker-alt"></i> Demografi Wilayah</div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:12px;color:#334155">Dalam Kota (Bondowoso):</span>
+                    <strong style="color:#0c4a6e">{{ $sensusWilayah['dalam_kota'] ?? 0 }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:12px;color:#334155">Luar Kota:</span>
+                    <strong style="color:#0891b2">{{ $sensusWilayah['luar_kota'] ?? 0 }}</strong>
+                </div>
+            </div>
+
+            <!-- 2. Gender -->
+            <div style="background:#fdf4ff;border:1px solid #f0abfc;border-radius:12px;padding:14px">
+                <div style="font-size:11px;font-weight:700;color:#86198f;text-transform:uppercase;margin-bottom:8px"><i class="fas fa-venus-mars"></i> Jenis Kelamin</div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:12px;color:#334155">Laki-laki (L):</span>
+                    <strong style="color:#0284c7">{{ $sensusGender['laki_laki'] ?? 0 }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:12px;color:#334155">Perempuan (P):</span>
+                    <strong style="color:#ec4899">{{ $sensusGender['perempuan'] ?? 0 }}</strong>
+                </div>
+            </div>
+
+            <!-- 3. Cara Bayar -->
+            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px">
+                <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;margin-bottom:8px"><i class="fas fa-wallet"></i> Cara Bayar</div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span style="font-size:12px;color:#334155">Umum / Mandiri:</span>
+                    <strong style="color:#059669">{{ $sensusCaraBayar['umum'] ?? 0 }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span style="font-size:12px;color:#334155">BPJS Kesehatan:</span>
+                    <strong style="color:#0284c7">{{ $sensusCaraBayar['bpjs'] ?? 0 }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:12px;color:#334155">Asuransi Lain:</span>
+                    <strong style="color:#d97706">{{ $sensusCaraBayar['asuransi'] ?? 0 }}</strong>
+                </div>
+            </div>
+
+            <!-- 4. Kasus Spesifik (Anak & Kandungan) -->
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px">
+                <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:8px"><i class="fas fa-stethoscope"></i> Poli Spesifik</div>
+                <div style="font-size:11.5px;font-weight:700;color:#b45309;margin-bottom:2px">Poli Anak:</div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:#475569">
+                    <span>Neonatus: <strong>{{ $sensusAnak['neonatus'] ?? 0 }}</strong></span>
+                    <span>Anak: <strong>{{ $sensusAnak['anak'] ?? 0 }}</strong></span>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:#b45309;margin-bottom:2px">Poli Kandungan:</div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#475569">
+                    <span>Obstetri: <strong>{{ $sensusObsgyn['obstetri'] ?? 0 }}</strong></span>
+                    <span>Ginekologi: <strong>{{ $sensusObsgyn['ginekologi'] ?? 0 }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- REKAP PER DOKTER SPESIALIS TABLE -->
+        <div style="margin-top:12px">
+            <div style="font-size:12px;font-weight:700;color:#0c4a6e;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px"><i class="fas fa-user-md" style="color:#0891b2"></i> Rekap Pelayanan Dokter Spesialis</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nama Dokter</th>
+                            <th>Spesialisasi</th>
+                            <th>Poliklinik</th>
+                            <th>Pasien Baru</th>
+                            <th>Kontrol</th>
+                            <th>Total Pasien</th>
+                            <th>Selesai Dilayani</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($byDokter as $dr)
+                        <tr>
+                            <td style="color:#94a3b8;font-size:11px">{{ $loop->iteration }}</td>
+                            <td style="font-weight:700;color:#0c4a6e">{{ $dr['nama'] }}</td>
+                            <td style="font-size:12px;color:#64748b">{{ $dr['spesialisasi'] }}</td>
+                            <td style="font-size:12px">{{ $dr['poli'] }}</td>
+                            <td style="font-size:12px;color:#0891b2;font-weight:600">{{ $dr['baru'] }}</td>
+                            <td style="font-size:12px;color:#7c3aed;font-weight:600">{{ $dr['kontrol'] }}</td>
+                            <td style="font-size:13px;font-weight:800;color:#0f172a">{{ $dr['total'] }}</td>
+                            <td>
+                                <span class="badge" style="background:#d1fae5;color:#065f46;font-size:11px">{{ $dr['selesai'] }} Pasien</span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:16px">Belum ada data dokter bertugas</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- CHART HARIAN -->
 <div class="card" style="margin-bottom:24px">
     <div class="card-header">
@@ -206,11 +317,11 @@
             <span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px">{{ $data->count() }} data</span>
         </div>
         <div style="display:flex;gap:8px">
-            <a href="{{ route('admin.laporan.excel', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
+            <a href="{{ route($r . 'laporan.excel', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
                 class="btn btn-sm btn-outline" style="color:#059669;border-color:#059669;font-size:11px">
                 <i class="fas fa-file-excel"></i> Excel
             </a>
-            <a href="{{ route('admin.laporan.pdf', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
+            <a href="{{ route($r . 'laporan.pdf', ['bulan'=>$bulan,'tahun'=>$tahun]) }}"
                 target="_blank" class="btn btn-sm btn-outline" style="color:#dc2626;border-color:#dc2626;font-size:11px">
                 <i class="fas fa-file-pdf"></i> PDF
             </a>
@@ -224,6 +335,9 @@
                     <th>Tanggal</th>
                     <th>Kode Booking</th>
                     <th>Pasien</th>
+                    <th>L/P</th>
+                    <th>Wilayah</th>
+                    <th>Cara Bayar</th>
                     <th>Poli</th>
                     <th>Dokter</th>
                     <th>Jam</th>
@@ -235,6 +349,10 @@
             </thead>
             <tbody>
                 @forelse($data as $i => $p)
+                @php
+                    $isDalam = ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso');
+                    $wilayahLabel = $isDalam ? 'Dalam Kota' : 'Luar Kota';
+                @endphp
                 <tr>
                     <td style="color:#94a3b8;font-size:12px">{{ $i+1 }}</td>
                     <td style="font-size:12px;font-weight:600">{{ $p->tanggal_kunjungan->format('d/m/Y') }}</td>
@@ -242,6 +360,19 @@
                     <td>
                         <div style="font-weight:600;font-size:13px">{{ $p->pasien->nama_lengkap ?? '-' }}</div>
                         <div style="font-size:10px;color:#94a3b8">{{ $p->pasien->no_rm ?? '' }}</div>
+                    </td>
+                    <td>
+                        <span class="badge" style="background:#f1f5f9;color:#334155;font-size:11px;font-weight:700">{{ $p->pasien->jenis_kelamin ?? '-' }}</span>
+                    </td>
+                    <td>
+                        <span class="badge" style="background:{{ $isDalam ? '#e0f2fe;color:#0369a1' : '#ede9fe;color:#6d28d9' }};font-size:10px;font-weight:700">
+                            {{ $wilayahLabel }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge" style="background:#ecfdf5;color:#065f46;font-size:10px;font-weight:700">
+                            {{ $p->cara_bayar ?? 'Umum' }}
+                        </span>
                     </td>
                     <td style="font-size:12px">{{ $p->poli->nama ?? '-' }}</td>
                     <td style="font-size:12px">{{ $p->dokter->nama_lengkap ?? '-' }}</td>
@@ -265,7 +396,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="11" style="text-align:center;padding:48px;color:#94a3b8">
+                    <td colspan="14" style="text-align:center;padding:48px;color:#94a3b8">
                         Tidak ada data untuk periode ini
                     </td>
                 </tr>
@@ -279,7 +410,7 @@
             @endphp
             <tfoot>
                 <tr style="background:#f0f9ff;font-weight:700">
-                    <td colspan="8" style="padding:10px 16px;font-size:12px;text-align:right;color:#0c4a6e">
+                    <td colspan="11" style="padding:10px 16px;font-size:12px;text-align:right;color:#0c4a6e">
                         Tingkat Penyelesaian:
                     </td>
                     <td colspan="2" style="padding:10px 16px;font-size:13px;color:#059669">
@@ -288,7 +419,7 @@
                     <td style="padding:10px 16px;font-size:12px;text-align:right;color:#64748b">Pendapatan:</td>
                 </tr>
                 <tr style="background:#f8fafc;font-weight:700">
-                    <td colspan="10" style="padding:10px 16px;font-size:12px;text-align:right">Total Pendapatan:</td>
+                    <td colspan="13" style="padding:10px 16px;font-size:12px;text-align:right">Total Pendapatan:</td>
                     <td style="padding:10px 16px;font-size:13px;color:#059669;text-align:right">
                         Rp {{ number_format($data->sum('biaya_konsultasi'), 0, ',', '.') }}
                     </td>

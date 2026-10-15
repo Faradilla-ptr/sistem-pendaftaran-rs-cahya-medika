@@ -21,8 +21,11 @@ class Pendaftaran extends Model
         'tanggal_kunjungan',
         'jam_kunjungan',
         'jenis_kunjungan', // baru, kontrol
+        'cara_bayar', // Umum, BPJS Kesehatan, Asuransi Lain
+        'status_wilayah', // dalam_kota, luar_kota
         'keluhan',
         'status', // terdaftar_online, menunggu, dipanggil, pemeriksaan_selesai, proses_rekam_medis, selesai, batal
+        'is_locked_by_poli',
         'catatan_admin',
         'biaya_konsultasi',
         'deposit_awal',
@@ -33,6 +36,9 @@ class Pendaftaran extends Model
         'qr_code_data',
         'is_checkin',
         'waktu_checkin',
+        // RME
+        'rme_data',
+        'rme_status',
         // SatuSehat
         'satusehat_encounter_id',
         'satusehat_response',
@@ -50,11 +56,13 @@ class Pendaftaran extends Model
     protected $casts = [
         'tanggal_kunjungan' => 'date',
         'satusehat_response' => 'array',
+        'rme_data' => 'array',
         'biaya_konsultasi' => 'decimal:2',
         'deposit_awal' => 'decimal:2',
         'biaya_total' => 'decimal:2',
         'sisa_deposit' => 'decimal:2',
         'is_checkin' => 'boolean',
+        'is_locked_by_poli' => 'boolean',
         'waktu_checkin' => 'datetime',
     ];
 

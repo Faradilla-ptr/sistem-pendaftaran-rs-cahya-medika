@@ -121,24 +121,22 @@ class AdminController extends Controller
 
     public function pasienEdit(Pasien $pasien)
     {
-        if (auth()->user()->role === 'rekam_medis') {
-            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
-        }
         return view('admin.pasien.edit', compact('pasien'));
     }
 
     public function pasienUpdate(Request $request, Pasien $pasien)
     {
-        if (auth()->user()->role === 'rekam_medis') {
-            abort(403, 'Akses Ditolak: Petugas Rekam Medis hanya memiliki akses Lihat (Read-Only) pada Identitas Pasien.');
-        }
         $validator = Validator::make($request->all(), [
-            'nama_lengkap' => 'required|string|max:255',
-            'nik' => 'required|size:16|unique:pasien,nik,' . $pasien->id,
-            'tanggal_lahir' => 'required|date',
-            'jenis_kelamin' => 'required|in:L,P',
-            'no_hp' => 'nullable|string|regex:/^08[0-9]{8,11}$/',
-            'alamat' => 'nullable|string',
+            'nama_lengkap'    => 'required|string|max:255',
+            'nik'             => 'nullable|size:16|unique:pasien,nik,' . $pasien->id,
+            'no_kk'           => 'nullable|string|max:20',
+            'tanggal_lahir'   => 'required|date',
+            'jenis_kelamin'   => 'required|in:L,P',
+            'no_hp'           => 'nullable|string|regex:/^08[0-9]{8,11}$/',
+            'alamat'          => 'nullable|string',
+            'alamat_domisili' => 'nullable|string',
+            'nama_ibu'        => 'nullable|string|max:100',
+            'nik_ibu'         => 'nullable|string|max:20',
         ], [
             'no_hp.regex' => 'Nomor HP harus diawali 08 dan berjumlah 10-13 angka.',
         ]);
@@ -149,8 +147,11 @@ class AdminController extends Controller
 
         $pasien->update($request->except(['_token', '_method']));
 
-        return redirect()->route('admin.pasien.show', $pasien->id)
-            ->with('success', 'Data pasien berhasil diperbarui.');
+        $role = auth()->user()->role;
+        $prefix = $role === 'rekam_medis' ? 'rekam_medis.' : ($role === 'pendaftaran' ? 'pendaftaran.' : 'admin.');
+
+        return redirect()->route($prefix . 'pasien.show', $pasien->id)
+            ->with('success', 'Data pasien berhasil diperbarui oleh ' . ucfirst($role) . '.');
     }
 
     // ======== PENDAFTARAN MANAGEMENT ========
@@ -659,7 +660,7 @@ class AdminController extends Controller
         }
     }
 
-    // ======== LAPORAN ========
+    // ======== LAPORAN & SENSUS HARIAN RAWAT JALAN ========
     public function laporan(Request $request)
     {
         $bulan = $request->bulan ?? now()->month;
@@ -671,15 +672,77 @@ class AdminController extends Controller
             ->orderBy('tanggal_kunjungan')
             ->get();
 
+        // 1. Rekap Per Poli
         $byPoli = $data->groupBy('poli_id')->map(function ($items) {
             return [
-                'nama'    => $items->first()->poli->nama ?? '-',
-                'total'   => $items->count(),
-                'selesai' => $items->where('status', 'selesai')->count(),
-                'baru'    => $items->where('jenis_kunjungan', 'baru')->count(),
-                'kontrol' => $items->where('jenis_kunjungan', 'kontrol')->count(),
+                'nama'       => $items->first()->poli->nama ?? '-',
+                'total'      => $items->count(),
+                'selesai'    => $items->where('status', 'selesai')->count(),
+                'baru'       => $items->where('jenis_kunjungan', 'baru')->count(),
+                'kontrol'    => $items->where('jenis_kunjungan', 'kontrol')->count(),
+                'dalam_kota' => $items->filter(fn($p) => ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso'))->count(),
+                'luar_kota'  => $items->filter(fn($p) => ($p->status_wilayah === 'luar_kota' || (strtolower(trim($p->pasien->kabupaten ?? '')) !== 'bondowoso' && !empty($p->pasien->kabupaten))))->count(),
+                'laki'       => $items->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'L') === 'L')->count(),
+                'perempuan'  => $items->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'P') === 'P')->count(),
             ];
         })->sortByDesc('total');
+
+        // 2. Rekap Per Dokter Spesialis
+        $byDokter = $data->groupBy('dokter_id')->map(function ($items) {
+            $dr = $items->first()->dokter;
+            return [
+                'nama'         => $dr ? $dr->nama_lengkap : '-',
+                'spesialisasi' => $dr ? $dr->spesialisasi : '-',
+                'poli'         => $items->first()->poli->nama ?? '-',
+                'total'        => $items->count(),
+                'selesai'      => $items->where('status', 'selesai')->count(),
+                'baru'         => $items->where('jenis_kunjungan', 'baru')->count(),
+                'kontrol'      => $items->where('jenis_kunjungan', 'kontrol')->count(),
+                'dalam_kota'   => $items->filter(fn($p) => ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso'))->count(),
+                'luar_kota'    => $items->filter(fn($p) => ($p->status_wilayah === 'luar_kota' || (strtolower(trim($p->pasien->kabupaten ?? '')) !== 'bondowoso' && !empty($p->pasien->kabupaten))))->count(),
+            ];
+        })->sortByDesc('total');
+
+        // 3. Rekapitulasi Sensus Wilayah (Dalam Kota vs Luar Kota)
+        $sensusWilayah = [
+            'dalam_kota' => $data->filter(fn($p) => ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso'))->count(),
+            'luar_kota'  => $data->filter(fn($p) => ($p->status_wilayah === 'luar_kota' || (strtolower(trim($p->pasien->kabupaten ?? '')) !== 'bondowoso' && !empty($p->pasien->kabupaten))))->count(),
+        ];
+
+        // 4. Rekapitulasi Jenis Kelamin (Laki-laki vs Perempuan)
+        $sensusGender = [
+            'laki_laki' => $data->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'L') === 'L')->count(),
+            'perempuan' => $data->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'P') === 'P')->count(),
+        ];
+
+        // 5. Rekapitulasi Status Kunjungan (Baru vs Lama)
+        $sensusKunjungan = [
+            'baru'    => $data->where('jenis_kunjungan', 'baru')->count(),
+            'kontrol' => $data->where('jenis_kunjungan', 'kontrol')->count(),
+        ];
+
+        // 6. Rekapitulasi Cara Bayar
+        $sensusCaraBayar = [
+            'umum'     => $data->where('cara_bayar', 'Umum')->count() ?: $data->filter(fn($p) => empty($p->cara_bayar) || $p->cara_bayar === 'Umum')->count(),
+            'bpjs'     => $data->where('cara_bayar', 'BPJS Kesehatan')->count(),
+            'asuransi' => $data->where('cara_bayar', 'Asuransi Lain')->count(),
+        ];
+
+        // 7. Sensus Khusus Poli Anak (Neonatus <= 28 hari vs Anak)
+        $poliAnakData = $data->filter(fn($p) => str_contains(strtolower($p->poli->nama ?? ''), 'anak'));
+        $sensusAnak = [
+            'total'    => $poliAnakData->count(),
+            'neonatus' => $poliAnakData->filter(fn($p) => optional($p->pasien->tanggal_lahir)->diffInDays($p->tanggal_kunjungan) <= 28)->count(),
+            'anak'     => $poliAnakData->filter(fn($p) => optional($p->pasien->tanggal_lahir)->diffInDays($p->tanggal_kunjungan) > 28)->count(),
+        ];
+
+        // 8. Sensus Khusus Poli Kandungan (Obstetri vs Ginekologi)
+        $poliObsgynData = $data->filter(fn($p) => str_contains(strtolower($p->poli->nama ?? ''), 'kandungan') || str_contains(strtolower($p->poli->nama ?? ''), 'obsgyn'));
+        $sensusObsgyn = [
+            'total'      => $poliObsgynData->count(),
+            'obstetri'   => $poliObsgynData->filter(fn($p) => str_contains(strtolower($p->keluhan ?? ''), 'hamil') || str_contains(strtolower($p->keluhan ?? ''), 'anc') || str_contains(strtolower($p->keluhan ?? ''), 'kandungan'))->count(),
+            'ginekologi' => $poliObsgynData->filter(fn($p) => !str_contains(strtolower($p->keluhan ?? ''), 'hamil') && !str_contains(strtolower($p->keluhan ?? ''), 'anc'))->count(),
+        ];
 
         $byStatus = $data->groupBy('status')->map->count();
 
@@ -695,8 +758,9 @@ class AdminController extends Controller
         $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
 
         return view('admin.laporan', compact(
-            'data', 'byPoli', 'byStatus', 'bulan', 'tahun', 'namabulan',
-            'hariList', 'hariData'
+            'data', 'byPoli', 'byDokter', 'byStatus', 'bulan', 'tahun', 'namabulan',
+            'hariList', 'hariData', 'sensusWilayah', 'sensusGender',
+            'sensusKunjungan', 'sensusCaraBayar', 'sensusAnak', 'sensusObsgyn'
         ));
     }
 
@@ -712,7 +776,7 @@ class AdminController extends Controller
             ->orderBy('tanggal_kunjungan')
             ->get();
 
-        $filename = "Laporan_Kunjungan_{$namabulan}.csv";
+        $filename = "Sensus_Harian_Rawat_Jalan_{$namabulan}.csv";
 
         $headers = [
             'Content-Type'        => 'text/csv; charset=UTF-8',
@@ -724,17 +788,20 @@ class AdminController extends Controller
 
         $callback = function () use ($data, $bulan, $tahun) {
             $handle = fopen('php://output', 'w');
-            // BOM UTF-8 agar Excel baca karakter Indonesia dengan benar
+            // BOM UTF-8 agar Excel membaca karakter Indonesia dengan benar
             fputs($handle, "\xEF\xBB\xBF");
 
             fputcsv($handle, [
                 'No', 'Kode Booking', 'Tanggal', 'Jam', 'No. RM',
-                'Nama Pasien', 'NIK', 'Poli', 'Dokter',
+                'Nama Pasien', 'L/P', 'Wilayah (Dalam/Luar Kota)', 'Cara Bayar',
+                'NIK', 'Poli Tujuan', 'Dokter Spesialis',
                 'Jenis Kunjungan', 'Keluhan', 'Status', 'SatuSehat Status',
-                'Biaya (Rp)', 'Tekanan Darah', 'Suhu', 'Nadi', 'BB', 'TB',
+                'Deposit Awal (Rp)', 'Total Biaya (Rp)', 'Sisa Deposit (Rp)',
+                'Tekanan Darah', 'Suhu (C)', 'Nadi (x/mnt)', 'BB (kg)', 'TB (cm)',
             ]);
 
             foreach ($data as $i => $p) {
+                $wilayahLabel = ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso') ? 'Dalam Kota' : 'Luar Kota';
                 fputcsv($handle, [
                     $i + 1,
                     $p->kode_booking,
@@ -742,14 +809,19 @@ class AdminController extends Controller
                     $p->jam_kunjungan,
                     $p->pasien->no_rm ?? '-',
                     $p->pasien->nama_lengkap ?? '-',
+                    $p->pasien->jenis_kelamin ?? 'L',
+                    $wilayahLabel,
+                    $p->cara_bayar ?? 'Umum',
                     $p->pasien->nik ?? '-',
                     $p->poli->nama ?? '-',
                     $p->dokter->nama_lengkap ?? '-',
                     $p->jenis_kunjungan === 'baru' ? 'Baru' : 'Kontrol',
                     $p->keluhan,
-                    ucfirst($p->status),
+                    ucfirst(str_replace('_', ' ', $p->status)),
                     ucfirst($p->satusehat_status),
-                    number_format($p->biaya_konsultasi, 0, ',', '.'),
+                    number_format((float) ($p->deposit_awal ?? 200000), 0, ',', '.'),
+                    number_format((float) ($p->biaya_total ?? 0), 0, ',', '.'),
+                    number_format((float) ($p->sisa_deposit ?? 0), 0, ',', '.'),
                     $p->tekanan_darah ?? '-',
                     $p->suhu ?? '-',
                     $p->nadi ?? '-',
@@ -817,15 +889,61 @@ class AdminController extends Controller
             ->orderBy('tanggal_kunjungan')
             ->get();
 
-        $byPoli    = $data->groupBy('poli_id')->map(fn($items) => [
-            'nama'    => $items->first()->poli->nama ?? '-',
-            'total'   => $items->count(),
-            'selesai' => $items->where('status', 'selesai')->count(),
-        ])->sortByDesc('total');
+        $byPoli = $data->groupBy('poli_id')->map(function ($items) {
+            return [
+                'nama'       => $items->first()->poli->nama ?? '-',
+                'total'      => $items->count(),
+                'selesai'    => $items->where('status', 'selesai')->count(),
+                'baru'       => $items->where('jenis_kunjungan', 'baru')->count(),
+                'kontrol'    => $items->where('jenis_kunjungan', 'kontrol')->count(),
+                'dalam_kota' => $items->filter(fn($p) => ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso'))->count(),
+                'luar_kota'  => $items->filter(fn($p) => ($p->status_wilayah === 'luar_kota' || (strtolower(trim($p->pasien->kabupaten ?? '')) !== 'bondowoso' && !empty($p->pasien->kabupaten))))->count(),
+                'laki'       => $items->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'L') === 'L')->count(),
+                'perempuan'  => $items->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'P') === 'P')->count(),
+            ];
+        })->sortByDesc('total');
+
+        $byDokter = $data->groupBy('dokter_id')->map(function ($items) {
+            $dr = $items->first()->dokter;
+            return [
+                'nama'         => $dr ? $dr->nama_lengkap : '-',
+                'spesialisasi' => $dr ? $dr->spesialisasi : '-',
+                'poli'         => $items->first()->poli->nama ?? '-',
+                'total'        => $items->count(),
+                'selesai'      => $items->where('status', 'selesai')->count(),
+                'baru'         => $items->where('jenis_kunjungan', 'baru')->count(),
+                'kontrol'      => $items->where('jenis_kunjungan', 'kontrol')->count(),
+            ];
+        })->sortByDesc('total');
+
+        $sensusWilayah = [
+            'dalam_kota' => $data->filter(fn($p) => ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso'))->count(),
+            'luar_kota'  => $data->filter(fn($p) => ($p->status_wilayah === 'luar_kota' || (strtolower(trim($p->pasien->kabupaten ?? '')) !== 'bondowoso' && !empty($p->pasien->kabupaten))))->count(),
+        ];
+
+        $sensusGender = [
+            'laki_laki' => $data->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'L') === 'L')->count(),
+            'perempuan' => $data->filter(fn($p) => ($p->pasien->jenis_kelamin ?? 'P') === 'P')->count(),
+        ];
+
+        $sensusKunjungan = [
+            'baru'    => $data->where('jenis_kunjungan', 'baru')->count(),
+            'kontrol' => $data->where('jenis_kunjungan', 'kontrol')->count(),
+        ];
+
+        $sensusCaraBayar = [
+            'umum'     => $data->where('cara_bayar', 'Umum')->count() ?: $data->filter(fn($p) => empty($p->cara_bayar) || $p->cara_bayar === 'Umum')->count(),
+            'bpjs'     => $data->where('cara_bayar', 'BPJS Kesehatan')->count(),
+            'asuransi' => $data->where('cara_bayar', 'Asuransi Lain')->count(),
+        ];
+
         $byStatus  = $data->groupBy('status')->map->count();
         $namabulan = \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->isoFormat('MMMM YYYY');
 
-        return view('admin.laporan-pdf', compact('data', 'byPoli', 'byStatus', 'bulan', 'tahun', 'namabulan'));
+        return view('admin.laporan-pdf', compact(
+            'data', 'byPoli', 'byDokter', 'byStatus', 'bulan', 'tahun', 'namabulan',
+            'sensusWilayah', 'sensusGender', 'sensusKunjungan', 'sensusCaraBayar'
+        ));
     }
 
     public function checkin(Request $request, Pendaftaran $pendaftaran)
@@ -833,6 +951,12 @@ class AdminController extends Controller
         if (!in_array(auth()->user()->role, ['admin', 'pendaftaran'])) {
             abort(403, 'Akses Ditolak: Hanya Petugas Pendaftaran / Loket yang dapat melakukan Check-in dan transaksi deposit.');
         }
+
+        // CPPT Lock Check (FR-04)
+        if ($pendaftaran->is_locked_by_poli && auth()->user()->role === 'pendaftaran') {
+            return back()->with('error', 'Data pendaftaran terkunci! Pelayanan medis di poli sudah dimulai. Revisi data hanya dapat dilakukan melalui Otorisasi Unit Rekam Medis.');
+        }
+
         if ($pendaftaran->is_checkin) {
             return back()->with('info', 'Pasien sudah melakukan check-in sebelumnya. Nomor Antrean: ' . $pendaftaran->no_antrian);
         }
@@ -841,6 +965,7 @@ class AdminController extends Controller
         if ($pendaftaran->pasien) {
             $pasienUpdate = [];
             if ($request->filled('pasien_nik'))               $pasienUpdate['nik']               = $request->pasien_nik;
+            if ($request->filled('pasien_no_kk'))             $pasienUpdate['no_kk']             = $request->pasien_no_kk;
             if ($request->filled('pasien_nama_lengkap'))      $pasienUpdate['nama_lengkap']      = $request->pasien_nama_lengkap;
             if ($request->filled('pasien_tempat_lahir'))      $pasienUpdate['tempat_lahir']      = $request->pasien_tempat_lahir;
             if ($request->filled('pasien_tanggal_lahir'))     $pasienUpdate['tanggal_lahir']     = $request->pasien_tanggal_lahir;
@@ -852,9 +977,11 @@ class AdminController extends Controller
             if ($request->filled('pasien_warga_negara'))      $pasienUpdate['warga_negara']      = $request->pasien_warga_negara;
             if ($request->filled('pasien_golongan_darah'))    $pasienUpdate['golongan_darah']    = $request->pasien_golongan_darah;
             if ($request->filled('pasien_nama_ibu'))          $pasienUpdate['nama_ibu']          = $request->pasien_nama_ibu;
+            if ($request->filled('pasien_nik_ibu'))           $pasienUpdate['nik_ibu']           = $request->pasien_nik_ibu;
             if ($request->filled('pasien_nama_ayah'))         $pasienUpdate['nama_ayah']         = $request->pasien_nama_ayah;
             if ($request->filled('pasien_no_hp'))             $pasienUpdate['no_hp']             = $request->pasien_no_hp;
             if ($request->filled('pasien_alamat'))            $pasienUpdate['alamat']            = $request->pasien_alamat;
+            if ($request->filled('pasien_alamat_domisili'))   $pasienUpdate['alamat_domisili']   = $request->pasien_alamat_domisili;
             if ($request->filled('pasien_provinsi'))          $pasienUpdate['provinsi']          = $request->pasien_provinsi;
             if ($request->filled('pasien_kabupaten'))         $pasienUpdate['kabupaten']         = $request->pasien_kabupaten;
             if ($request->filled('pasien_kecamatan'))         $pasienUpdate['kecamatan']         = $request->pasien_kecamatan;
@@ -867,11 +994,17 @@ class AdminController extends Controller
 
         $noAntrian = Pendaftaran::generateNoAntrian($pendaftaran->poli_id, $pendaftaran->tanggal_kunjungan->format('Y-m-d'));
 
+        // Klasifikasi Wilayah (Bondowoso = dalam_kota, selain itu = luar_kota)
+        $kab = strtolower(trim($pendaftaran->pasien->kabupaten ?? ''));
+        $statusWilayah = ($kab === 'bondowoso') ? 'dalam_kota' : 'luar_kota';
+
         $pendaftaran->update([
             'no_antrian'        => $noAntrian,
             'is_checkin'        => true,
             'waktu_checkin'     => now(),
             'status'            => 'menunggu',
+            'status_wilayah'    => $statusWilayah,
+            'cara_bayar'        => $request->cara_bayar ?? ($pendaftaran->cara_bayar ?: 'Umum'),
             'deposit_awal'      => $request->deposit_awal ?? 200000.00,
             'tekanan_darah'     => $request->tekanan_darah ?? $pendaftaran->tekanan_darah,
             'suhu'              => $request->suhu ?? $pendaftaran->suhu,
@@ -909,7 +1042,80 @@ class AdminController extends Controller
             }
         }
 
-        return back()->with('success', "Check-in berhasil! Nomor Antrean " . ($pendaftaran->poli->kode ?? 'A') . "-" . sprintf('%03d', $noAntrian) . " telah diterbitkan. Deposit Rp 200.000 telah diterima.");
+        return back()->with('success', "Check-in berhasil! Nomor Antrean " . ($pendaftaran->poli->kode ?? 'A') . "-" . sprintf('%03d', $noAntrian) . " telah diterbitkan. Status wilayah: " . ucfirst(str_replace('_', ' ', $statusWilayah)) . ". Deposit Rp 200.000 telah diterima.");
+    }
+
+    // ======== RME (REKAM MEDIS ELEKTRONIK & CPPT) ========
+    public function rmeForm(Pendaftaran $pendaftaran)
+    {
+        $pendaftaran->load(['pasien', 'dokter', 'poli']);
+        $icd10 = \App\Models\Icd10Code::orderBy('code')->limit(150)->get();
+        $icd9  = \App\Models\Icd9Code::orderBy('code')->limit(150)->get();
+        return view('admin.pendaftaran.formulir_rme', compact('pendaftaran', 'icd10', 'icd9'));
+    }
+
+    public function rmeStore(Request $request, Pendaftaran $pendaftaran)
+    {
+        $existing = $pendaftaran->rme_data ?? [];
+        $newAdmisi = $request->input('admisi');
+        if (!is_array($newAdmisi) || empty($newAdmisi)) {
+            $newAdmisi = $request->only(['kamar_kelas_tt', 'dirawat_ke', 'pj_nama_hp', 'keluarga_terdekat_detail', 'tanggal_jam_mrs', 'cara_mrs']);
+        }
+        $newMedis = $request->input('medis');
+        if (!is_array($newMedis) || empty($newMedis)) {
+            $newMedis = $request->only([
+                'dokter_yang_merawat', 'diagnosa_masuk', 'riwayat_alergi', 'gejala_pemeriksaan',
+                'icd_code', 'diagnosa_utama', 'komplikasi', 'diagnosa_sekunder',
+                'penyebab_cedera', 'tindakan_nama', 'tindakan_kode', 'tanggal_jam_krs',
+                'lama_dirawat', 'keadaan_krs', 'cara_krs'
+            ]);
+        }
+
+        $rmeData = [
+            'admisi' => array_merge($existing['admisi'] ?? [], array_filter($newAdmisi)),
+            'medis'  => array_merge($existing['medis'] ?? [], array_filter($newMedis)),
+        ];
+
+        // Also update vitals if submitted in RME form
+        $vitals = [];
+        if ($request->filled('suhu')) $vitals['suhu'] = $request->suhu;
+        if ($request->filled('tekanan_darah')) $vitals['tekanan_darah'] = $request->tekanan_darah;
+        if ($request->filled('berat_badan')) $vitals['berat_badan'] = $request->berat_badan;
+        if ($request->filled('tinggi_badan')) $vitals['tinggi_badan'] = $request->tinggi_badan;
+
+        $pendaftaran->update(array_merge($vitals, [
+            'rme_data'          => $rmeData,
+            'rme_status'        => 'verified',
+            'is_locked_by_poli' => true,
+            'status'            => 'pemeriksaan_selesai',
+        ]));
+
+        // Auto trigger update ke SatuSehat jika Encounter sudah terdaftar
+        if ($pendaftaran->satusehat_encounter_id) {
+            try {
+                $this->satuSehat->syncFullEncounter([
+                    'pasien'      => $pendaftaran->pasien,
+                    'pendaftaran' => $pendaftaran,
+                    'dokter'      => $pendaftaran->dokter,
+                ]);
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+
+        return back()->with('success', 'Formulir RME & CPPT berhasil disimpan! Hak edit loket pendaftaran terkunci secara otomatis (CPPT Lock: AKTIF).');
+    }
+
+    public function rmePdf(Pendaftaran $pendaftaran)
+    {
+        $pendaftaran->load(['pasien', 'dokter', 'poli']);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pendaftaran.pdf_formulir_rme', [
+            'pendaftaran' => $pendaftaran,
+            'pasien'      => $pendaftaran->pasien,
+            'rme'         => $pendaftaran->rme_data ?? [],
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("Formulir_RME_{$pendaftaran->kode_booking}.pdf");
     }
 
     public function lookupBooking(Request $request)

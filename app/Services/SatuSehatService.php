@@ -489,6 +489,86 @@ class SatuSehatService
         ];
     }
 
+    // =========================================================
+    // PROCEDURE (TINDAKAN MEDIS ICD-9-CM)
+    // =========================================================
+
+    /** POST Create Procedure (ICD-9-CM) */
+    public function createProcedure(array $data): array
+    {
+        $payload = $this->buildProcedurePayload($data);
+
+        try {
+            $response = $this->client->post($this->baseUrl . '/fhir-r4/v1/Procedure', [
+                'headers' => $this->getHeaders(),
+                'json'    => $payload,
+            ]);
+
+            return [
+                'success' => true,
+                'data'    => json_decode($response->getBody()->getContents(), true),
+            ];
+        } catch (\Exception $e) {
+            $body = $this->getBody($e);
+            Log::error('SatuSehat Create Procedure Error: ' . $e->getMessage() . ' | ' . $body);
+
+            if (config('satusehat.use_dummy')) {
+                return [
+                    'success'  => true,
+                    'data'     => array_merge($payload, ['id' => 'dummy-procedure-' . rand(1000, 9999)]),
+                    'is_dummy' => true,
+                ];
+            }
+
+            return ['success' => false, 'error' => $e->getMessage(), 'details' => $body];
+        }
+    }
+
+    /**
+     * Payload builder untuk Procedure FHIR R4 (ICD-9-CM Kemenkes RI)
+     */
+    protected function buildProcedurePayload(array $data): array
+    {
+        $patientId   = $data['patient_id']   ?? '';
+        $encounterId = $data['encounter_id'] ?? '';
+        $icd9Code    = $data['icd9_code']    ?? '89.07';
+        $icd9Display = $data['icd9_display'] ?? 'Comprehensive Consultation and Medical Evaluation';
+        $recordedAt  = $data['datetime']     ?? now('Asia/Jakarta')->format('Y-m-d\TH:i:s+07:00');
+
+        return [
+            'resourceType' => 'Procedure',
+            'status'       => 'completed',
+            'category'     => [
+                [
+                    'coding' => [
+                        [
+                            'system'  => 'http://snomed.info/sct',
+                            'code'    => '387713003',
+                            'display' => 'Surgical procedure',
+                        ],
+                    ],
+                ],
+            ],
+            'code' => [
+                'coding' => [
+                    [
+                        'system'  => 'http://hl7.org/fhir/sid/icd-9-cm',
+                        'code'    => $icd9Code,
+                        'display' => $icd9Display,
+                    ],
+                ],
+                'text' => $icd9Display,
+            ],
+            'subject' => [
+                'reference' => 'Patient/' . $patientId,
+            ],
+            'encounter' => [
+                'reference' => 'Encounter/' . $encounterId,
+            ],
+            'performedDateTime' => $recordedAt,
+        ];
+    }
+
 
     // =========================================================
     // OBSERVATION (VITAL SIGNS & REKAM MEDIS)
@@ -785,15 +865,29 @@ class SatuSehatService
             'satusehat_status'       => 'success',
         ]);
 
-        // 3. Condition POST (Clinical Condition / Keluhan Utama)
+        // 3. Condition POST (Clinical Condition / Keluhan Utama / Diagnosa ICD-10)
+        $rmeMedis = $pendaftaran->rme_data['medis'] ?? [];
+        $icd10Code = $rmeMedis['diagnosa_icd10'] ?? ($rmeMedis['icd10_code'] ?? 'R50.9');
+        $icd10Display = $rmeMedis['diagnosa_utama'] ?? ($rmeMedis['icd10_display'] ?? ($pendaftaran->keluhan ?: 'Pemeriksaan Rawat Jalan'));
+
         $conditionRes = $this->createCondition([
             'patient_id'   => $pasien->satusehat_id,
             'encounter_id' => $encounterId,
-            'keluhan'      => $pendaftaran->keluhan ?: 'Pemeriksaan Umum',
-            'icd_code'     => 'R50.9',
-            'icd_display'  => 'Fever, unspecified',
+            'keluhan'      => $icd10Display,
+            'icd_code'     => $icd10Code,
+            'icd_display'  => $icd10Display,
         ]);
         $conditionId = $conditionRes['data']['id'] ?? null;
+
+        // 3b. Procedure POST (Tindakan Medis ICD-9-CM jika tersedia di RME)
+        $procedureId = null;
+        $procRes = $this->createProcedure([
+            'patient_id'   => $pasien->satusehat_id,
+            'encounter_id' => $encounterId,
+            'icd9_code'    => $rmeMedis['tindakan_icd9'] ?? '89.07',
+            'icd9_display' => $rmeMedis['tindakan_medis'] ?? 'Konsultasi dan Pemeriksaan Medis Komprehensif',
+        ]);
+        $procedureId = $procRes['data']['id'] ?? null;
 
         // 4. Observation POST (Vital Signs)
         $vitalsRes = $this->syncVitalSigns([
@@ -812,12 +906,13 @@ class SatuSehatService
 
         // 5. Encounter PUT (Update status to finished with diagnosis reference)
         $targetStatus = ($pendaftaran->status === 'selesai' || $pendaftaran->status === 'diproses') ? 'finished' : 'in-progress';
-        $putRes = $this->updateEncounterStatus($encounterId, $targetStatus, $conditionId, 'Fever, unspecified');
+        $putRes = $this->updateEncounterStatus($encounterId, $targetStatus, $conditionId, $icd10Display);
 
         return [
             'success'       => true,
             'encounter_id'  => $encounterId,
             'condition_id'  => $conditionId,
+            'procedure_id'  => $procedureId,
             'observations'  => $vitalsRes['synced'] ?? [],
             'encounter_put' => !empty($putRes['success']),
         ];

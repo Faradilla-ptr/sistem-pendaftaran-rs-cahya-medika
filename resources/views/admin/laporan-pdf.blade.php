@@ -160,8 +160,60 @@ tfoot td { padding: 8px; font-weight: 700; background: #e0f2fe; color: #0c4a6e; 
     </tfoot>
 </table>
 
+<!-- SENSUS HARIAN DEMOGRAFI & CARA BAYAR -->
+<div class="section-title">Sensus Harian Rawat Jalan (Demografi & Finansial)</div>
+<div class="summary" style="margin-bottom: 12px">
+    <div class="sum-box" style="border-top: 3px solid #0284c7">
+        <div style="font-size:14px;font-weight:900;color:#0369a1">{{ $sensusWilayah['dalam_kota'] ?? 0 }} / {{ $sensusWilayah['luar_kota'] ?? 0 }}</div>
+        <div class="sum-label">Wilayah (Dalam / Luar Kota)</div>
+    </div>
+    <div class="sum-box" style="border-top: 3px solid #ec4899">
+        <div style="font-size:14px;font-weight:900;color:#be185d">{{ $sensusGender['laki_laki'] ?? 0 }} / {{ $sensusGender['perempuan'] ?? 0 }}</div>
+        <div class="sum-label">Gender (L / P)</div>
+    </div>
+    <div class="sum-box" style="border-top: 3px solid #10b981">
+        <div style="font-size:14px;font-weight:900;color:#047857">{{ $sensusKunjungan['baru'] ?? 0 }} / {{ $sensusKunjungan['kontrol'] ?? 0 }}</div>
+        <div class="sum-label">Kunjungan (Baru / Kontrol)</div>
+    </div>
+    <div class="sum-box" style="border-top: 3px solid #f59e0b">
+        <div style="font-size:11px;font-weight:700;color:#b45309">U: {{ $sensusCaraBayar['umum'] ?? 0 }} | B: {{ $sensusCaraBayar['bpjs'] ?? 0 }} | A: {{ $sensusCaraBayar['asuransi'] ?? 0 }}</div>
+        <div class="sum-label">Cara Bayar (Umum / BPJS / Asuransi)</div>
+    </div>
+</div>
+
+<!-- REKAP PER DOKTER SPESIALIS -->
+<div class="section-title">Rekap Dokter Spesialis</div>
+<table>
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>Nama Dokter</th>
+            <th>Spesialisasi</th>
+            <th>Poli</th>
+            <th>Baru</th>
+            <th>Kontrol</th>
+            <th>Total</th>
+            <th>Selesai</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($byDokter as $dr)
+        <tr>
+            <td>{{ $loop->iteration }}</td>
+            <td><strong>{{ $dr['nama'] }}</strong></td>
+            <td>{{ $dr['spesialisasi'] }}</td>
+            <td>{{ $dr['poli'] }}</td>
+            <td>{{ $dr['baru'] }}</td>
+            <td>{{ $dr['kontrol'] }}</td>
+            <td style="font-weight:700">{{ $dr['total'] }}</td>
+            <td>{{ $dr['selesai'] }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+
 <!-- DETAIL KUNJUNGAN -->
-<div class="section-title">Detail Kunjungan Pasien</div>
+<div class="section-title">Detail Kunjungan Pasien (Sensus Lengkap)</div>
 <table>
     <thead>
         <tr>
@@ -170,6 +222,9 @@ tfoot td { padding: 8px; font-weight: 700; background: #e0f2fe; color: #0c4a6e; 
             <th>Kode Booking</th>
             <th>No. RM</th>
             <th>Nama Pasien</th>
+            <th>L/P</th>
+            <th>Wilayah</th>
+            <th>Cara Bayar</th>
             <th>NIK</th>
             <th>Poli</th>
             <th>Dokter</th>
@@ -181,12 +236,19 @@ tfoot td { padding: 8px; font-weight: 700; background: #e0f2fe; color: #0c4a6e; 
     </thead>
     <tbody>
         @forelse($data as $i => $p)
+        @php
+            $isDalam = ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso');
+            $wilayah = $isDalam ? 'Dalam Kota' : 'Luar Kota';
+        @endphp
         <tr>
             <td>{{ $i+1 }}</td>
             <td>{{ $p->tanggal_kunjungan->format('d/m/Y') }}</td>
             <td style="font-size:9px">{{ $p->kode_booking }}</td>
             <td style="font-size:9px">{{ $p->pasien->no_rm ?? '-' }}</td>
             <td><strong>{{ $p->pasien->nama_lengkap ?? '-' }}</strong></td>
+            <td>{{ $p->pasien->jenis_kelamin ?? '-' }}</td>
+            <td>{{ $wilayah }}</td>
+            <td>{{ $p->cara_bayar ?? 'Umum' }}</td>
             <td style="font-size:9px">{{ $p->pasien->nik ?? '-' }}</td>
             <td>{{ $p->poli->nama ?? '-' }}</td>
             <td>{{ $p->dokter->nama_lengkap ?? '-' }}</td>
@@ -212,12 +274,12 @@ tfoot td { padding: 8px; font-weight: 700; background: #e0f2fe; color: #0c4a6e; 
             <td style="text-align:right">{{ $p->biaya_konsultasi > 0 ? number_format($p->biaya_konsultasi, 0, ',', '.') : '-' }}</td>
         </tr>
         @empty
-        <tr><td colspan="12" style="text-align:center;padding:20px;color:#94a3b8">Tidak ada data</td></tr>
+        <tr><td colspan="15" style="text-align:center;padding:20px;color:#94a3b8">Tidak ada data</td></tr>
         @endforelse
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="11" style="text-align:right">Total Pendapatan:</td>
+            <td colspan="14" style="text-align:right">Total Pendapatan:</td>
             <td style="text-align:right">{{ number_format($data->sum('biaya_konsultasi'), 0, ',', '.') }}</td>
         </tr>
     </tfoot>

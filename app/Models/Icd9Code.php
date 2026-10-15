@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Icd9Code extends Model
+{
+    use HasFactory;
+
+    protected $table = 'icd9_codes';
+
+    protected $fillable = [
+        'code',
+        'name_id',
+        'name_en',
+        'chapter_number',
+        'chapter_name',
+    ];
+}

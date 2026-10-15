@@ -145,10 +145,52 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function cekNik(Request $request)
+    {
+        $nik = trim($request->nik ?? '');
+        if (strlen($nik) !== 16) {
+            return response()->json(['success' => true, 'exists' => false]);
+        }
+        $pasien = Pasien::where('nik', $nik)->first();
+        if ($pasien) {
+            return response()->json([
+                'success' => true,
+                'exists'  => true,
+                'pasien'  => [
+                    'id'            => $pasien->id,
+                    'no_rm'         => $pasien->no_rm,
+                    'nik'           => $pasien->nik,
+                    'no_kk'         => $pasien->no_kk,
+                    'nama_lengkap'  => $pasien->nama_lengkap,
+                    'tempat_lahir'  => $pasien->tempat_lahir,
+                    'tanggal_lahir' => optional($pasien->tanggal_lahir)->format('Y-m-d'),
+                    'jenis_kelamin' => $pasien->jenis_kelamin,
+                    'alamat'        => $pasien->alamat,
+                    'alamat_domisili' => $pasien->alamat_domisili,
+                    'kelurahan'     => $pasien->kelurahan,
+                    'kecamatan'     => $pasien->kecamatan,
+                    'kabupaten'     => $pasien->kabupaten,
+                    'provinsi'      => $pasien->provinsi,
+                    'no_hp'         => $pasien->no_hp,
+                    'agama'         => $pasien->agama,
+                    'pekerjaan'     => $pasien->pekerjaan,
+                    'pendidikan'    => $pasien->pendidikan,
+                    'status_pernikahan' => $pasien->status_pernikahan,
+                    'golongan_darah' => $pasien->golongan_darah,
+                    'nama_ibu'      => $pasien->nama_ibu,
+                    'nik_ibu'       => $pasien->nik_ibu,
+                    'nama_ayah'     => $pasien->nama_ayah,
+                ]
+            ]);
+        }
+        return response()->json(['success' => true, 'exists' => false]);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'nik'               => 'nullable|string|max:20',
+            'no_kk'             => 'nullable|string|max:20',
             'nama_lengkap'      => 'nullable|string|max:100',
             'tempat_lahir'      => 'nullable|string|max:50',
             'tanggal_lahir'     => 'nullable|date',
@@ -158,6 +200,7 @@ class PendaftaranController extends Controller
             'pendidikan'         => 'nullable|string|max:50',
             'status_pernikahan'  => 'nullable|string|max:50',
             'alamat'            => 'nullable|string|max:255',
+            'alamat_domisili'   => 'nullable|string|max:255',
             'kelurahan'         => 'nullable|string|max:100',
             'kecamatan'         => 'nullable|string|max:100',
             'kabupaten'         => 'nullable|string|max:100',
@@ -166,6 +209,7 @@ class PendaftaranController extends Controller
             'suku'              => 'nullable|string|max:50',
             'golongan_darah'    => 'nullable|string|max:10',
             'nama_ibu'          => 'nullable|string|max:100',
+            'nik_ibu'           => 'nullable|string|max:20',
             'nama_ayah'         => 'nullable|string|max:100',
             'no_hp'             => 'nullable|string|regex:/^08[0-9]{8,11}$/',
             'riwayat_alergi'    => 'nullable|string|max:50',
@@ -189,6 +233,7 @@ class PendaftaranController extends Controller
             'tanggal_kunjungan' => 'required|date|after_or_equal:today',
             'jam_kunjungan'     => 'required|string',
             'jenis_kunjungan'   => 'required|in:baru,kontrol',
+            'cara_bayar'        => 'nullable|string|in:Umum,BPJS Kesehatan,Asuransi Lain',
             'keluhan'           => 'required|string|max:500',
         ], [
             'no_hp.regex'                => 'Nomor HP harus diawali dengan 08 dan terdiri dari 10-13 angka.',
@@ -214,12 +259,47 @@ class PendaftaranController extends Controller
             return back()->withErrors(['error' => 'Profil pasien tidak ditemukan. Lengkapi profil Anda terlebih dahulu.']);
         }
 
+        // Logic Pasien Bayi (< 30 Hari) & Pasien Darurat (Mr. X)
+        $isEmergency = (bool) $request->input('is_emergency', false);
+        $isBayi = false;
+        if ($request->filled('tanggal_lahir')) {
+            $tglLahir = \Carbon\Carbon::parse($request->tanggal_lahir);
+            if ($tglLahir->diffInDays(now()) < 30) {
+                $isBayi = true;
+            }
+        }
+
+        if ($isBayi) {
+            if (empty($request->nik_ibu) || empty($request->nama_ibu)) {
+                return back()->withErrors([
+                    'nik_ibu' => 'Untuk pasien bayi (usia < 30 hari), NIK Ibu (16 digit) dan Nama Ibu Kandung wajib diisi.',
+                ])->withInput();
+            }
+        } elseif (!$isEmergency && empty($request->nik)) {
+            return back()->withErrors([
+                'nik' => 'No. KTP / NIK wajib diisi untuk pasien umum.',
+            ])->withInput();
+        }
+
+        // Validasi Kuota Dokter (Maksimal 30 Pasien per sesi)
+        $kuotaMaksimal = 30;
+        $antrianDokterHariIni = Pendaftaran::where('dokter_id', $request->dokter_id)
+            ->whereDate('tanggal_kunjungan', $request->tanggal_kunjungan)
+            ->whereNotIn('status', ['batal'])
+            ->count();
+
+        if ($antrianDokterHariIni >= $kuotaMaksimal) {
+            return back()->withErrors([
+                'dokter_id' => 'Kuota pendaftaran dokter untuk tanggal ini telah penuh (maksimal 30 pasien). Silakan pilih tanggal kunjungan berikutnya.',
+            ])->withInput();
+        }
+
         // Update all fields of FORMULIR IDENTITAS PASIEN
         $pasienFields = [
-            'nik', 'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
-            'pekerjaan', 'agama', 'pendidikan', 'status_pernikahan', 'alamat',
+            'nik', 'no_kk', 'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+            'pekerjaan', 'agama', 'pendidikan', 'status_pernikahan', 'alamat', 'alamat_domisili',
             'kelurahan', 'kecamatan', 'kabupaten', 'provinsi', 'warga_negara',
-            'suku', 'golongan_darah', 'nama_ibu', 'nama_ayah', 'no_hp',
+            'suku', 'golongan_darah', 'nama_ibu', 'nik_ibu', 'nama_ayah', 'no_hp',
             'riwayat_alergi', 'jenis_alergi',
             'nama_pj', 'jenis_kelamin_pj', 'hubungan_pj', 'pekerjaan_pj',
             'alamat_pj', 'kelurahan_pj', 'kecamatan_pj', 'kabupaten_pj', 'provinsi_pj', 'no_hp_pj'
@@ -229,6 +309,13 @@ class PendaftaranController extends Controller
         foreach ($pasienFields as $f) {
             if ($request->has($f) && $request->input($f) !== null) {
                 $updateData[$f] = $request->input($f);
+            }
+        }
+
+        if ($isEmergency) {
+            $updateData['is_identitas_lengkap'] = false;
+            if (empty($updateData['nama_lengkap'])) {
+                $updateData['nama_lengkap'] = 'Mr. X (Darurat ' . date('d/m/Y H:i') . ')';
             }
         }
 
@@ -247,8 +334,6 @@ class PendaftaranController extends Controller
             $pasien->update($updateData);
             $pasien->refresh();
         }
-
-        $dokter = Dokter::find($request->dokter_id);
 
         // Maksimal 3 pendaftaran per pasien pada tanggal kunjungan yang sama
         $jumlahPendaftaranHariIni = Pendaftaran::where('pasien_id', $pasien->id)
@@ -275,11 +360,15 @@ class PendaftaranController extends Controller
             ])->withInput();
         }
 
+        // Status Wilayah (Bondowoso = dalam_kota, selain itu = luar_kota)
+        $kab = strtolower(trim($request->kabupaten ?? $pasien->kabupaten ?? ''));
+        $statusWilayah = ($kab === 'bondowoso') ? 'dalam_kota' : 'luar_kota';
+
         try {
             DB::beginTransaction();
 
             // --- Pastikan pasien punya SatuSehat ID sebelum buat encounter ---
-            if (!$pasien->satusehat_id) {
+            if (!$pasien->satusehat_id && !empty($pasien->nik)) {
                 $ssPatient = $this->satuSehat->getOrCreatePatient([
                     'nik'           => $pasien->nik,
                     'nama_lengkap'  => $pasien->nama_lengkap,
@@ -307,6 +396,8 @@ class PendaftaranController extends Controller
                 'tanggal_kunjungan' => $request->tanggal_kunjungan,
                 'jam_kunjungan'     => $request->jam_kunjungan,
                 'jenis_kunjungan'   => $request->jenis_kunjungan,
+                'cara_bayar'        => $request->cara_bayar ?? 'Umum',
+                'status_wilayah'    => $statusWilayah,
                 'keluhan'           => $request->keluhan,
                 'status'            => 'terdaftar_online',
                 'satusehat_status'  => 'pending',
@@ -316,6 +407,7 @@ class PendaftaranController extends Controller
                 'estimasi_menit'    => $request->estimasi_menit ?? 12,
                 'qr_code_data'      => 'CM-' . date('Ymd') . '-' . rand(1000, 9999),
                 'is_checkin'        => false,
+                'is_locked_by_poli' => false,
             ]);
 
             // Set qr_code_data persis ke kode_booking
@@ -356,8 +448,8 @@ class PendaftaranController extends Controller
             return redirect()->route('pasien.pendaftaran.index')->with('error', 'Pendaftaran tidak ditemukan atau bukan milik Anda.');
         }
 
-        if (!in_array($pendaftaran->status, ['menunggu'])) {
-            return back()->withErrors(['error' => 'Pendaftaran tidak dapat dibatalkan.']);
+        if (!in_array($pendaftaran->status, ['terdaftar_online', 'menunggu'])) {
+            return back()->withErrors(['error' => 'Pendaftaran tidak dapat dibatalkan. Pelayanan antrean telah diproses.']);
         }
 
         $pendaftaran->update([

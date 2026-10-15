@@ -1,12 +1,9 @@
 @extends('layouts.app')
 
 @php
-    $userRole = 'pasien';
-    if (request()->is('superadmin*') || request()->is('pendaftaran-admin*') || request()->is('admin*')) {
-        $userRole = 'superadmin';
-    } elseif (request()->is('rekam-medis*')) {
-        $userRole = 'rekam_medis';
-    }
+    $r = request()->is('rekam-medis*') ? 'rekam_medis.' : (request()->is('pendaftaran*') ? 'pendaftaran.' : 'admin.');
+    $isRmOrAdmin = in_array(auth()->user()->role ?? '', ['rekam_medis', 'admin']);
+    $isLoketOrAdmin = in_array(auth()->user()->role ?? '', ['pendaftaran', 'admin']);
 
     $pasien = $pendaftaran->pasien;
     $rme = $pendaftaran->rme_data ?? [];
@@ -99,18 +96,12 @@
             <p class="text-muted small mb-0">Kode Booking: <strong>{{ $pendaftaran->kode_booking }}</strong> | Status: <span class="badge bg-info text-white">{{ strtoupper($pendaftaran->status) }}</span></p>
         </div>
         <div class="d-flex gap-2">
-            @if($userRole === 'rekam_medis')
-                <a href="{{ route('rekam-medis.pendaftaran.formulir-rme.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
-                    <i class="fas fa-file-pdf me-1"></i> Cetak Hardfile PDF (F4)
-                </a>
-                <a href="{{ route('rekam-medis.pendaftaran.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali
-                </a>
-            @else
-                <a href="{{ route('superadmin.pendaftaran.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali
-                </a>
-            @endif
+            <a href="{{ route($r . 'pendaftaran.rme.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fas fa-file-pdf me-1"></i> Cetak Hardfile PDF (F4)
+            </a>
+            <a href="{{ route($r . 'pendaftaran.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="fas fa-arrow-left me-1"></i> Kembali
+            </a>
         </div>
     </div>
 
@@ -124,19 +115,13 @@
                             <i class="fas fa-sync-alt fa-lg text-info"></i>
                         </div>
                         <div>
-                            <h5 class="mb-1 text-white font-weight-bold">Status Alur RME: 
-                                @if($pendaftaran->rme_status === 'draft_pendaftaran')
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-edit"></i> 1. Pengisian Admisi (Pendaftaran)</span>
-                                @elseif($pendaftaran->rme_status === 'dikirim_ke_rm')
-                                    <span class="badge bg-info text-white"><i class="fas fa-paper-plane"></i> 2. Dikirim ke Rekam Medis</span>
-                                @elseif($pendaftaran->rme_status === 'konfirmasi_pendaftaran')
-                                    <span class="badge bg-primary text-white"><i class="fas fa-clock"></i> 3. Menunggu Konfirmasi Selesai (Pendaftaran)</span>
-                                @elseif($pendaftaran->rme_status === 'selesai_pendaftaran')
-                                    <span class="badge bg-success text-white"><i class="fas fa-check-circle"></i> 4. Konfirmasi Selesai (Siap Verifikasi RM)</span>
-                                @elseif($pendaftaran->rme_status === 'verified_rm' || $pendaftaran->satusehat_status === 'success')
-                                    <span class="badge bg-success text-white"><i class="fas fa-cloud-upload-alt"></i> 5. Terverifikasi & Terintegrasi SATUSEHAT</span>
+                            <h5 class="mb-1 text-white font-weight-bold">Status Pelayanan & RME: 
+                                @if($pendaftaran->is_locked_by_poli)
+                                    <span class="badge bg-danger text-white"><i class="fas fa-lock"></i> CPPT Lock: Aktif (Pelayanan Poli Selesai)</span>
+                                @elseif($pendaftaran->rme_status === 'verified' || $pendaftaran->satusehat_status === 'success')
+                                    <span class="badge bg-success text-white"><i class="fas fa-cloud-upload-alt"></i> Terverifikasi & Terintegrasi SATUSEHAT</span>
                                 @else
-                                    <span class="badge bg-secondary">{{ $pendaftaran->rme_status ?? 'Draft' }}</span>
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-edit"></i> {{ ucfirst(str_replace('_', ' ', $pendaftaran->status)) }}</span>
                                 @endif
                             </h5>
                             <p class="text-light small mb-0">Pasien: <strong>{{ $pasien->nama_lengkap ?? '-' }}</strong> (No. RM: {{ $pasien->no_rm ?? '-' }}) | NIK: {{ $pasien->nik ?? '-' }}</p>
@@ -144,21 +129,9 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-md-content-end">
-                    @if($userRole === 'superadmin' && $pendaftaran->rme_status === 'konfirmasi_pendaftaran')
-                        <form action="{{ route('superadmin.pendaftaran.formulir-rme.konfirmasi', $pendaftaran->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-md rounded-pill px-4 font-weight-bold shadow-sm">
-                                <i class="fas fa-check-double me-1"></i> Confirm (Pasien Selesai)
-                            </button>
-                        </form>
-                    @elseif($userRole === 'rekam_medis' && ($pendaftaran->rme_status === 'selesai_pendaftaran' || $pendaftaran->status === 'selesai'))
-                        <form action="{{ route('rekam-medis.pendaftaran.formulir-rme.verify-sync', $pendaftaran->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-warning text-dark btn-md rounded-pill px-4 font-weight-bold shadow-sm">
-                                <i class="fas fa-cloud-upload-alt me-1"></i> Verifikasi & Sync Ke SATUSEHAT
-                            </button>
-                        </form>
-                    @endif
+                    <a href="{{ route($r . 'pendaftaran.show', $pendaftaran->id) }}" class="btn btn-outline-light btn-md rounded-pill px-3 font-weight-bold shadow-sm">
+                        <i class="fas fa-info-circle me-1"></i> Detail Pendaftaran
+                    </a>
                 </div>
             </div>
         </div>
@@ -172,11 +145,9 @@
                 <small class="text-muted">(LEMBAR MASUK & KELUAR) - PERATURAN KEMENKES RI</small>
             </div>
             <div class="d-flex align-items-center gap-2">
-                @if($userRole === 'rekam_medis')
-                    <a href="{{ route('rekam-medis.pendaftaran.formulir-rme.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                        <i class="fas fa-print me-1"></i> Cetak Hardfile PDF (F4)
-                    </a>
-                @endif
+                <a href="{{ route($r . 'pendaftaran.rme.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="fas fa-print me-1"></i> Cetak Hardfile PDF (F4)
+                </a>
                 <span class="badge bg-danger px-3 py-2 text-uppercase">RAHASIA</span>
             </div>
         </div>
@@ -186,12 +157,12 @@
             <!-- ========================================================= -->
             <!-- BAGIAN 1: DIISI OLEH PENDAFTARAN (ADMISI PASIEN) -->
             <!-- ========================================================= -->
-            <form action="{{ route('superadmin.pendaftaran.formulir-rme.pendaftaran', $pendaftaran->id) }}" method="POST" id="formPendaftaran">
+            <form action="{{ route($r . 'pendaftaran.rme.store', $pendaftaran->id) }}" method="POST" id="formPendaftaran">
                 @csrf
                 <div class="rme-card border-start border-4 border-primary">
                     <div class="rme-section-header text-primary">
                         <span><i class="fas fa-id-card me-2"></i>BAGIAN 1: IDENTITAS & ADMISI PASIEN (PENDAFTARAN)</span>
-                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1">Hak Akses: Pendaftaran & SuperAdmin</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1">Hak Akses: Pendaftaran & Admin</span>
                     </div>
                     
                     <div class="rme-grid-2">
@@ -323,10 +294,10 @@
                         </div>
                     </div>
 
-                    @if($userRole === 'superadmin' || $userRole === 'admin')
+                    @if($isLoketOrAdmin)
                         <div class="mt-4 text-end">
                             <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
-                                <i class="fas fa-paper-plane me-1"></i> Simpan Admisi & Kirim ke Rekam Medis
+                                <i class="fas fa-save me-1"></i> Simpan Data Admisi
                             </button>
                         </div>
                     @endif
@@ -335,10 +306,10 @@
 
             <!-- ========================================================= -->
             <!-- BAGIAN 2: DATA MEDIS & KODE DIAGNOSA ICD-10 -->
-            <!-- KHUSUS UNTUK ROLE REKAM MEDIS (PERSYARATAN PRIVASI PASIEN) -->
+            <!-- KHUSUS UNTUK ROLE REKAM MEDIS & DOKTER (PRIVASI PASIEN) -->
             <!-- ========================================================= -->
-            @if($userRole === 'rekam_medis')
-                <form action="{{ route('rekam-medis.pendaftaran.formulir-rme.rekam-medis', $pendaftaran->id) }}" method="POST" id="formRekamMedis">
+            @if($isRmOrAdmin)
+                <form action="{{ route($r . 'pendaftaran.rme.store', $pendaftaran->id) }}" method="POST" id="formRekamMedis">
                     @csrf
                     <div class="rme-card border-start border-4 border-success">
                         <div class="rme-section-header text-success">

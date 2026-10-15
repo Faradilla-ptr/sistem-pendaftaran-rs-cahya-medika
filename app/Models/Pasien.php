@@ -16,6 +16,7 @@ class Pasien extends Model
         'user_id',
         'no_rm',
         'nik',
+        'no_kk',
         'nama_lengkap',
         'nama_panggilan',
         'tanggal_lahir',
@@ -30,6 +31,7 @@ class Pasien extends Model
         'no_hp',
         'email',
         'alamat',
+        'alamat_domisili',
         'kelurahan',
         'kode_kelurahan',
         'kecamatan',
@@ -54,14 +56,16 @@ class Pasien extends Model
         'warga_negara',
         'suku',
         'nama_ibu',
+        'nik_ibu',
         'nama_ayah',
         'riwayat_alergi',
         'jenis_alergi',
         // SatuSehat
         'satusehat_id',
         'satusehat_ihs_number',
-        // Status
+        // Status & Flag Kelengkapan
         'status', // aktif, nonaktif
+        'is_identitas_lengkap',
     ];
 
     protected $casts = [

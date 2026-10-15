@@ -51,27 +51,37 @@
             <div class="card-header">
                 <div class="card-title">👤 Data Pasien</div>
                 <div style="display:flex;gap:6px">
+                    <a href="{{ route($r . 'pendaftaran.rme', $pendaftaran->id) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-file-medical"></i> RME / CPPT
+                    </a>
                     <a href="{{ route($r . 'pendaftaran.pdf', $pendaftaran->id) }}" target="_blank" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">
                         <i class="fas fa-file-pdf"></i> Cetak Form PDF
                     </a>
-                    @if(in_array(auth()->user()->role, ['admin', 'pendaftaran']))
                     <a href="{{ route($r . 'pasien.edit', $pendaftaran->pasien->id) }}" class="btn btn-outline btn-sm">
-                        <i class="fas fa-edit"></i> Edit
+                        <i class="fas fa-edit"></i> Edit Pasien
                     </a>
-                    @endif
                 </div>
             </div>
             <div class="card-body">
                 <div style="display:grid;gap:10px">
+                    @php
+                        $isDalam = ($pendaftaran->status_wilayah === 'dalam_kota' || strtolower(trim($pendaftaran->pasien->kabupaten ?? '')) === 'bondowoso');
+                        $wilayahText = $isDalam ? 'Dalam Kota (Bondowoso)' : 'Luar Kota';
+                    @endphp
                     @foreach([
                         ['No. RM', $pendaftaran->pasien->no_rm ?? '-'],
                         ['Nama Lengkap', $pendaftaran->pasien->nama_lengkap ?? '-'],
-                        ['NIK / KTP', $pendaftaran->pasien->nik ?? '-'],
+                        ['NIK / KTP', $pendaftaran->pasien->nik ?? ($pendaftaran->is_emergency ? 'MR. X (Emergency)' : '-')],
+                        ['No. KK', $pendaftaran->pasien->no_kk ?? '-'],
+                        ['Wilayah', $wilayahText],
+                        ['Cara Bayar', $pendaftaran->cara_bayar ?? 'Umum'],
                         ['Tanggal Lahir', optional($pendaftaran->pasien->tanggal_lahir)->format('d M Y') . ' (' . ($pendaftaran->pasien->umur ?? '?') . ' tahun)'],
                         ['Jenis Kelamin', $pendaftaran->pasien->jenis_kelamin_label ?? '-'],
                         ['No. HP', $pendaftaran->pasien->no_hp ?? '-'],
-                        ['Alamat', Str::limit($pendaftaran->pasien->alamat ?? '-', 60)],
+                        ['Alamat KTP', Str::limit($pendaftaran->pasien->alamat ?? '-', 60)],
+                        ['Alamat Domisili', Str::limit($pendaftaran->pasien->alamat_domisili ?? 'Sama dengan KTP', 60)],
                         ['Penanggung Jawab', $pendaftaran->pasien->nama_pj ?? '-'],
+                        ['CPPT Lock', $pendaftaran->is_locked_by_poli ? '🔒 Terkunci oleh Poli' : '🔓 Terbuka'],
                     ] as [$label, $val])
                     <div style="display:flex;gap:10px">
                         <div style="font-size:11px;font-weight:700;color:#94a3b8;width:120px;flex-shrink:0;padding-top:1px">{{ $label }}</div>
