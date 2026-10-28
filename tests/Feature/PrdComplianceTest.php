@@ -18,8 +18,14 @@ class PrdComplianceTest extends TestCase
      */
     public function test_cek_nik_api_returns_correct_response(): void
     {
+        // 0. Unauthenticated request must be rejected (OWASP A01 Protection)
+        $resGuest = $this->getJson('/api/cek-nik?nik=3511011234567890');
+        $resGuest->assertStatus(401);
+
+        $user = User::factory()->create(['role' => 'pasien']);
+
         // 1. Unregistered NIK
-        $resNotFound = $this->getJson('/api/cek-nik?nik=9999999999999999');
+        $resNotFound = $this->actingAs($user)->getJson('/api/cek-nik?nik=9999999999999999');
         $resNotFound->assertStatus(200)
             ->assertJson([
                 'success' => true,
@@ -27,7 +33,6 @@ class PrdComplianceTest extends TestCase
             ]);
 
         // 2. Existing patient NIK
-        $user = User::factory()->create(['role' => 'pasien']);
         $pasien = Pasien::create([
             'user_id'       => $user->id,
             'no_rm'         => 'RM-TEST-' . rand(1000, 9999),
@@ -37,7 +42,7 @@ class PrdComplianceTest extends TestCase
             'jenis_kelamin' => 'L',
         ]);
 
-        $resFound = $this->getJson('/api/cek-nik?nik=' . $pasien->nik);
+        $resFound = $this->actingAs($user)->getJson('/api/cek-nik?nik=' . $pasien->nik);
         $resFound->assertStatus(200)
             ->assertJson([
                 'success' => true,

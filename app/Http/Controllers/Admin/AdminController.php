@@ -299,11 +299,14 @@ class AdminController extends Controller
             $query->where('spesialisasi', 'like', '%' . $request->spesialisasi . '%');
         }
         if ($request->hari) {
-            $hari = $request->hari;
-            $query->where(function ($q) use ($hari) {
-                $q->whereNotNull('jadwal')
-                  ->whereRaw("JSON_EXTRACT(jadwal, '$.{$hari}.aktif') = true");
-            });
+            $hari = strtolower(trim($request->hari));
+            $validDays = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
+            if (in_array($hari, $validDays, true)) {
+                $query->where(function ($q) use ($hari) {
+                    $q->whereNotNull('jadwal')
+                      ->whereRaw("JSON_EXTRACT(jadwal, ?) = true", ["$.{$hari}.aktif"]);
+                });
+            }
         }
 
         $dokter = $query->paginate(15);
@@ -800,9 +803,16 @@ class AdminController extends Controller
                 'Tekanan Darah', 'Suhu (C)', 'Nadi (x/mnt)', 'BB (kg)', 'TB (cm)',
             ]);
 
+            $sanitizeCsv = function ($val) {
+                if (is_string($val) && strlen($val) > 0 && in_array($val[0], ['=', '+', '-', '@'], true)) {
+                    return "'" . $val;
+                }
+                return $val;
+            };
+
             foreach ($data as $i => $p) {
                 $wilayahLabel = ($p->status_wilayah === 'dalam_kota' || strtolower(trim($p->pasien->kabupaten ?? '')) === 'bondowoso') ? 'Dalam Kota' : 'Luar Kota';
-                fputcsv($handle, [
+                $row = [
                     $i + 1,
                     $p->kode_booking,
                     $p->tanggal_kunjungan->format('d/m/Y'),
@@ -827,7 +837,8 @@ class AdminController extends Controller
                     $p->nadi ?? '-',
                     $p->berat_badan ?? '-',
                     $p->tinggi_badan ?? '-',
-                ]);
+                ];
+                fputcsv($handle, array_map($sanitizeCsv, $row));
             }
 
             fclose($handle);

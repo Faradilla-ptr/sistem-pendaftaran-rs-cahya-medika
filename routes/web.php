@@ -16,8 +16,22 @@ use Illuminate\Support\Facades\Route;
 
 // ==================== HOME ====================
 Route::get('/', function () {
-    return view('welcome');
+    $polis = \App\Models\Poli::where('is_active', true)
+        ->with('dokter')
+        ->orderBy('id', 'asc')
+        ->take(8)
+        ->get();
+
+    $dokters = \App\Models\Dokter::where('is_active', true)
+        ->whereNotNull('poli_id')
+        ->with('poli')
+        ->orderBy('id', 'asc')
+        ->take(9)
+        ->get();
+
+    return view('welcome', compact('polis', 'dokters'));
 })->name('home');
+
 
 // General /dashboard route redirector
 Route::get('/dashboard', function () {
@@ -83,28 +97,28 @@ Route::get('/rekam-medis', function () {
     return redirect()->route('rekam_medis.dashboard');
 });
 
-// General API
-Route::get('/api/cek-nik', [PendaftaranController::class, 'cekNik'])->name('api.cek-nik');
+// General API (Protected with Auth & Throttle to prevent unauthorized PII scraping)
+Route::middleware(['auth', 'throttle:30,1'])->get('/api/cek-nik', [PendaftaranController::class, 'cekNik'])->name('api.cek-nik');
 
 // ==================== AUTH ====================
 Route::middleware('guest')->group(function () {
     // 1. Pasien Login
     Route::get('/login', function() { return redirect()->route('pasien.login'); })->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:5,1');
     Route::get('/pasien/login', [AuthController::class, 'showLogin'])->name('pasien.login');
-    Route::post('/pasien/login', [AuthController::class, 'login'])->name('pasien.login.post');
+    Route::post('/pasien/login', [AuthController::class, 'login'])->name('pasien.login.post')->middleware('throttle:5,1');
     Route::get('/daftar', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/daftar', [AuthController::class, 'register'])->name('register.post');
+    Route::post('/daftar', [AuthController::class, 'register'])->name('register.post')->middleware('throttle:5,1');
 
     // 2. Pendaftaran & Loket Login
     Route::get('/pendaftaran/login', [AuthController::class, 'showAdminLogin'])->name('pendaftaran.login');
-    Route::post('/pendaftaran/login', [AuthController::class, 'login'])->name('pendaftaran.login.post');
+    Route::post('/pendaftaran/login', [AuthController::class, 'login'])->name('pendaftaran.login.post')->middleware('throttle:5,1');
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
-    Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post')->middleware('throttle:5,1');
 
     // 3. Rekam Medis Login
     Route::get('/rekam-medis/login', [AuthController::class, 'showRekamMedisLogin'])->name('rekam_medis.login');
-    Route::post('/rekam-medis/login', [AuthController::class, 'login'])->name('rekam_medis.login.post');
+    Route::post('/rekam-medis/login', [AuthController::class, 'login'])->name('rekam_medis.login.post')->middleware('throttle:5,1');
 });
 
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');

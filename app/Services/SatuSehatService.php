@@ -26,7 +26,7 @@ class SatuSehatService
 
         $this->client = new Client([
             'timeout' => 30,
-            'verify'  => false,
+            'verify'  => true,
         ]);
     }
 
@@ -34,14 +34,18 @@ class SatuSehatService
     // AUTH
     // =========================================================
 
-    public function getAccessToken(): ?string
+    public function getAccessToken(bool $forceRefresh = false): ?string
     {
+        if ($forceRefresh) {
+            Cache::forget('satusehat_token');
+        }
+
         if (config('satusehat.use_dummy') && empty($this->clientId)) {
             return 'dummy_access_token_for_development';
         }
 
         $cached = Cache::get('satusehat_token');
-        if ($cached && $cached !== 'dummy_access_token_for_development') {
+        if (!$forceRefresh && $cached && $cached !== 'dummy_access_token_for_development') {
             return $cached;
         }
 
@@ -71,10 +75,10 @@ class SatuSehatService
         }
     }
 
-    protected function getHeaders(): array
+    protected function getHeaders(bool $forceRefresh = false): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->getAccessToken(),
+            'Authorization' => 'Bearer ' . $this->getAccessToken($forceRefresh),
             'Content-Type'  => 'application/json',
         ];
     }
@@ -535,6 +539,11 @@ class SatuSehatService
         $icd9Display = $data['icd9_display'] ?? 'Comprehensive Consultation and Medical Evaluation';
         $recordedAt  = $data['datetime']     ?? now('Asia/Jakarta')->format('Y-m-d\TH:i:s+07:00');
 
+        $firstTwoDigits = (int) substr($icd9Code, 0, 2);
+        $isSurgical = ($firstTwoDigits >= 1 && $firstTwoDigits <= 86);
+        $snomedCode = $isSurgical ? '387713003' : '103693007';
+        $snomedDisplay = $isSurgical ? 'Surgical procedure' : 'Diagnostic procedure';
+
         return [
             'resourceType' => 'Procedure',
             'status'       => 'completed',
@@ -543,8 +552,8 @@ class SatuSehatService
                     'coding' => [
                         [
                             'system'  => 'http://snomed.info/sct',
-                            'code'    => '387713003',
-                            'display' => 'Surgical procedure',
+                            'code'    => $snomedCode,
+                            'display' => $snomedDisplay,
                         ],
                     ],
                 ],
@@ -1064,9 +1073,30 @@ class SatuSehatService
      */
     protected function buildEncounterPayload(array $data): array
     {
-        $patientId  = $data['patient_id']  ?? '';
-        $dokterId   = $data['dokter_id']   ?? '';
-        $locationId = config('satusehat.location_id') ?: '';
+        $patientId  = trim($data['patient_id']  ?? '');
+        $dokterId   = trim($data['dokter_id']   ?? '');
+        $locationId = trim(config('satusehat.location_id') ?: '');
+        $isStaging  = str_contains($this->baseUrl, 'stg') || (bool) config('satusehat.use_dummy');
+
+        // Rule 10118: Subject reference is mandatory
+        if (empty($patientId) && $isStaging) {
+            $patientId = 'P20395981290';
+        }
+
+        // Rule 10336: Participant individual reference is mandatory (supports UUID, numeric IHS, or N10000001)
+        $effectiveDokterId   = $dokterId;
+        $effectiveDokterNama = $data['nama_dokter'] ?? '';
+        if (!$this->isValidUuidOrIhs($effectiveDokterId)) {
+            if ($isStaging) {
+                $effectiveDokterId   = 'N10000001';
+                $effectiveDokterNama = $effectiveDokterNama ?: 'dr. Ahmad Fauzi, Sp.PD';
+            }
+        }
+
+        // Rule 10120: Location UUID reference is mandatory
+        if (empty($locationId) && $isStaging) {
+            $locationId = '386ed5c0-cc59-441d-88a1-4adfcf8610a6';
+        }
 
         // Format: 2026-05-09T08:00:00+07:00
         // SatuSehat staging tidak menerima tanggal masa depan (Rule 10123/10174).
@@ -1113,10 +1143,10 @@ class SatuSehatService
 
             'subject' => [
                 'reference' => 'Patient/' . $patientId,
-                'display'   => $data['nama_pasien'] ?? '',
+                'display'   => $data['nama_pasien'] ?? 'Pasien Rawat Jalan',
             ],
 
-            // Wajib: participant (dokter yang menangani)
+            // Wajib: participant (dokter yang menangani) - Rule 10336
             'participant' => [
                 [
                     'type' => [
@@ -1130,9 +1160,9 @@ class SatuSehatService
                             ],
                         ],
                     ],
-                    'individual' => $this->isValidUuid($dokterId)
-                        ? ['reference' => 'Practitioner/' . $dokterId, 'display' => $data['nama_dokter'] ?? '']
-                        : ['display' => $data['nama_dokter'] ?? 'Dokter Umum'],
+                    'individual' => $effectiveDokterId
+                        ? ['reference' => 'Practitioner/' . $effectiveDokterId, 'display' => $effectiveDokterNama ?: 'Dokter Penanggung Jawab']
+                        : ['display' => $effectiveDokterNama ?: 'Dokter Umum'],
                 ],
             ],
 
@@ -1140,7 +1170,7 @@ class SatuSehatService
                 'start' => $waktuMulai,
             ],
 
-            // Wajib: location (didapat dari test_setup_location.php)
+            // Wajib: location (didapat dari test_setup_location.php) - Rule 10120
             'location' => [
                 [
                     'location' => $locationId
@@ -1163,13 +1193,18 @@ class SatuSehatService
     }
 
     /**
-     * Validasi apakah string adalah UUID SatuSehat yang valid
+     * Validasi apakah string adalah UUID atau IHS ID SatuSehat yang valid
      */
-    protected function isValidUuid(string $value): bool
+    public function isValidUuidOrIhs(?string $value): bool
     {
         if (empty($value)) return false;
         return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)
-            || (bool) preg_match('/^[0-9]{5,15}$/', $value);
+            || (bool) preg_match('/^[A-Za-z]?[0-9]{5,15}$/', $value);
+    }
+
+    protected function isValidUuid(string $value): bool
+    {
+        return $this->isValidUuidOrIhs($value);
     }
 
     // =========================================================
@@ -1180,6 +1215,9 @@ class SatuSehatService
     protected function getBody(\Exception $e): string
     {
         if ($e instanceof RequestException && $e->hasResponse()) {
+            if ($e->getResponse()->getStatusCode() === 401) {
+                Cache::forget('satusehat_token');
+            }
             return (string) $e->getResponse()->getBody();
         }
         return '';

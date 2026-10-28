@@ -40,3 +40,7 @@ test.php
 *wawancara*
 *WAWANCARA*
 
+# WhatsApp Notifier (Local Only)
+.wa_auth/
+wa-notifier.js
+wa-*.js

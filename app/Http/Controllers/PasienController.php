@@ -178,10 +178,20 @@ class PasienController extends Controller
     public function ocrKtp(Request $request, \App\Services\GeminiOcrService $ocrService)
     {
         try {
-            $base64 = $request->input('ktp_image');
             if ($request->hasFile('ktp_image')) {
+                $request->validate([
+                    'ktp_image' => 'required|file|mimes:jpeg,jpg,png,webp|max:5120',
+                ], [
+                    'ktp_image.mimes' => 'Format foto KTP harus berupa JPG, PNG, atau WebP.',
+                    'ktp_image.max'   => 'Ukuran foto KTP maksimal 5MB.',
+                ]);
                 $file = $request->file('ktp_image');
                 $base64 = base64_encode(file_get_contents($file->getRealPath()));
+            } else {
+                $base64 = $request->input('ktp_image');
+                if (!empty($base64) && strlen($base64) > 8 * 1024 * 1024) {
+                    return response()->json(['success' => false, 'message' => 'Ukuran gambar base64 melebihi batas maksimal 5MB.'], 422);
+                }
             }
 
             if (empty($base64)) {
@@ -202,10 +212,16 @@ class PasienController extends Controller
                 'data'    => $result['data'] ?? [],
                 'message' => 'Data KTP berhasil diekstraksi menggunakan AI Gemini API.'
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $ve) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses OCR KTP: ' . $e->getMessage()
+                'message' => $ve->validator->errors()->first()
+            ], 422);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('OCR KTP Exception: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem saat memproses OCR KTP. Silakan coba kembali.'
             ], 500);
         }
     }
